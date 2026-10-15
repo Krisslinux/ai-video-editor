@@ -9,7 +9,7 @@ Create: turn a description, references, clips, images, and audio into scenes, an
 ## Confirmed repository state (2026-10-15)
 
 - Repository: https://github.com/Krisslinux/ai-video-editor. It is public and has main with an initial README, Node-oriented .gitignore, and MIT LICENSE. No application code or build command exists.
-- The repo's MIT file is a fact of the initial commit, not confirmation that the owner finalized the license.
+- The owner confirmed the existing MIT LICENSE as the project's license on 2026-10-15. Dependency-specific distribution terms still require review before adoption.
 - Product name, desktop framework, rendering library, and provider matrix remain open.
 - Target baseline: CPU rendering and cloud AI calls. Available Windows RDP hardware is stated as 4 cores, 16 GB RAM, about 200 GB storage, with no baseline GPU. This execution environment has not been verified as that RDP.
 - Development accounts: two separate ChatGPT Plus sign-ins. Application testing has a custom-provider Claude token, which must enter only through secure local settings.
@@ -25,8 +25,7 @@ Synchronization must be evaluated with measurements and a correction path. Align
 
 ## Open questions
 
-1. Confirm whether the existing MIT LICENSE is the intended final license.
-2. Select the desktop shell, media engine packaging, and export codec/distribution approach after license review and a CPU prototype.
-3. Define first edit-plan schema and operation set, preview strategy, and timing tolerance.
-4. Identify provider name, endpoint, and model ID when integration work begins; use secure secret entry for tokens.
-5. Decide whether any cloud data or telemetry leaves the device, and define consent and retention behavior.
+1. Select the desktop shell, media engine packaging, and export codec/distribution approach after dependency license review and a CPU prototype.
+2. Define first edit-plan schema and operation set, preview strategy, and timing tolerance.
+3. Identify provider name, endpoint, and model ID when integration work begins; use secure secret entry for tokens.
+4. Decide whether any cloud data or telemetry leaves the device, and define consent and retention behavior.

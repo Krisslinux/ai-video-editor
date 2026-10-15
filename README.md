@@ -12,4 +12,4 @@ The initial checkout contains planning records only. Install and test commands w
 
 ## License
 
-The repository was created with an [MIT license](LICENSE). The owner has not yet confirmed whether MIT is the final project license; preserve the current file until that decision is recorded. Check each media and model dependency's distribution terms before adoption.
+The repository was created with an [MIT license](LICENSE). The owner confirmed MIT for this project on 2026-10-15. Check each media and model dependency's distribution terms before adoption.
