@@ -4,7 +4,7 @@ Updated: 2026-10-15 22:16 UTC
 
 ## Working state
 
-Repository: https://github.com/Krisslinux/ai-video-editor (public). Active remote branch: research/descript-desktop, created from setup/development-foundation at 741d1002df589e135af84035a68d36f0eb89fb80. The setup work remains in [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1). Inspect the research branch or its draft PR for its current head. Last relevant application-code commit: none; the repository still contains documentation and configuration only. No local clone or worktree status could be verified in this session.
+Repository: https://github.com/Krisslinux/ai-video-editor (public). Active remote branch: research/descript-desktop, created from setup/development-foundation at 741d1002df589e135af84035a68d36f0eb89fb80. The setup work remains in [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1). Inspect [draft research PR #2](https://github.com/Krisslinux/ai-video-editor/pull/2) for the current branch head. Last relevant application-code commit: none; the repository still contains documentation and configuration only. No local clone or worktree status could be verified in this session.
 
 Completed before this session: shared foundation records, MIT decision, CodeRabbit review configuration, Notion links, and public-source Descript research. The research file includes an isolated three-request disposable-project protocol and separates vendor statements from observed evidence.
 
@@ -24,4 +24,4 @@ Identify the downloaded target, run REA diagnostics and the three isolated Descr
 
 ## Exact next action
 
-When a local command runtime is available, run a harmless shell check, verify the supplied Desktop/Descript.lnk shortcut and resolve its target without launching it; then record target full path, installer/application identity, version/build, SHA-256, and OS. Then run rea doctor --client codex --json and follow the target-appropriate REA workflow. Keep the research PR in draft until the live evidence is captured.
+When a local command runtime is available, run a harmless shell check, verify the supplied Desktop/Descript.lnk shortcut and resolve its target without launching it; then record target full path, installer/application identity, version/build, SHA-256, and OS. Then run rea doctor --client codex --json and follow the target-appropriate REA workflow. Keep [research PR #2](https://github.com/Krisslinux/ai-video-editor/pull/2) in draft until the live evidence is captured.
