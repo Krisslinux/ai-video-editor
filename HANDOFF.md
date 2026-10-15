@@ -1,27 +1,27 @@
 # Handoff
 
-Updated: 2026-10-15 22:16 UTC
+Updated: 2026-10-15 22:42 UTC
 
 ## Working state
 
-Repository: https://github.com/Krisslinux/ai-video-editor (public). Active remote branch: research/descript-desktop, created from setup/development-foundation at 741d1002df589e135af84035a68d36f0eb89fb80. The setup work remains in [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1). Inspect [draft research PR #2](https://github.com/Krisslinux/ai-video-editor/pull/2) for the current branch head. Last relevant application-code commit: none; the repository still contains documentation and configuration only. No local clone or worktree status could be verified in this session.
+Repository: https://github.com/Krisslinux/ai-video-editor (public). Active remote branch: research/descript-desktop, based on setup/development-foundation. [Draft research PR #2](https://github.com/Krisslinux/ai-video-editor/pull/2) tracks this work; setup remains in [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1). Last relevant application-code commit: none; the repository has documentation and configuration only. Inspect PR #2 for the current branch head. No local clone or worktree status could be verified.
 
-Completed before this session: shared foundation records, MIT decision, CodeRabbit review configuration, Notion links, and public-source Descript research. The research file includes an isolated three-request disposable-project protocol and separates vendor statements from observed evidence.
+The owner reports Descript 2.21.1 installed at a Descript.exe under %LOCALAPPDATA%/Programs/Descript. This is not independently verified. The earlier Desktop/Descript.lnk shortcut was also not resolved. Neither installation nor existing projects were changed.
 
-Completed this session: read AGENTS.md, PROJECT.md, TASKS.md, HANDOFF.md, and the Descript research record from the remote branch; checked that the setup branch is ahead of main and has no commits behind; created the research branch; retried a harmless shell command, computer-use inventory, and REA tool discovery. The owner supplied a Desktop/Descript.lnk shortcut path, but no host tool could verify the file or resolve its target. A fresh harmless shell and UI retry failed before startup. The [Descript research log](docs/research/descript.md) records these checks.
+Completed: shared foundation records and MIT decision, CodeRabbit PR review, Notion links, public-source Descript findings, and a three-request disposable-project test protocol in [docs/research/descript.md](docs/research/descript.md). This session reread AGENTS.md, PROJECT.md, TASKS.md, HANDOFF.md, and the research file; checked PR #2 and its branch are synchronized with the setup base; retried shell, desktop UI, and REA connection checks.
 
 ## Checks and blockers
 
-- PowerShell process creation for Write-Output 'runtime-ok' failed before startup with helper_unknown_error: setup refresh had errors.
-- Computer-use inventory exited before returning UI state with the same Windows sandbox error. No REA MCP tools are exposed.
-- The user-reported Desktop/Descript.lnk shortcut has not been read. Its target path, installer-versus-installed status, version/build/hash, OS host identity, and project availability are unknown. The working directory is C:\Windows\System32; it has not been confirmed as the AWS RDP machine.
-- No REA Evidence ID, static package analysis, runtime trace, AI editing test, preview, undo, sync measurement, or export exists. Descript installation and existing projects were untouched.
-- GitHub connector reads and branch writes work. The existing setup PR is draft; no application build or platform check exists.
+- Harmless PowerShell Write-Output and alternate cmd.exe ver both failed before startup with helper_unknown_error: setup refresh had errors. The owner reports that elevated sandbox setup completed, but this session's process helper still rejects launches.
+- Computer-use cua.getState() exited with the same Windows sandbox setup error. No REA MCP tools are exposed.
+- The supplied executable path and version are user reports; file existence, actual target, VersionInfo, hash, OS host identity, and installed REA version are not verified. This task's cwd is C:\Windows\System32; it is not confirmed as the AWS RDP host.
+- No REA Evidence ID, static or runtime application analysis, disposable project, AI edit, before/after timeline, preview, undo, export, or A/V measurement exists. Cloud internals remain unknown.
+- GitHub connector branch writes and PR reads work. No runnable project build or platform check exists.
 
 ## Unfinished work
 
-Identify the downloaded target, run REA diagnostics and the three isolated Descript edits in a disposable project, and record sanitized before/after evidence. Dependency license review, runnable desktop scaffold, CPU media proof, cross-platform checks, and Sentry setup remain separate foundation tasks.
+Verify the executable and REA readiness, inspect the installed package and app behavior, and run isolated pause-removal, caption, and clip-shortening tests on synthetic media. Dependency review, editor scaffold, CPU media proof, cross-platform CI, and Sentry setup remain foundation tasks.
 
 ## Exact next action
 
-When a local command runtime is available, run a harmless shell check, verify the supplied Desktop/Descript.lnk shortcut and resolve its target without launching it; then record target full path, installer/application identity, version/build, SHA-256, and OS. Then run rea doctor --client codex --json and follow the target-appropriate REA workflow. Keep [research PR #2](https://github.com/Krisslinux/ai-video-editor/pull/2) in draft until the live evidence is captured.
+When the local command/runtime connection works, verify the reported Descript.exe without launching it, recording full path, VersionInfo, SHA-256, and OS. Read the installed REA skill, run rea doctor --client codex --json, inspect available tools, then use the target-appropriate Electron/JavaScript workflow. Run the three disposable-project requests and save sanitized REA Evidence IDs and measured before/after results in docs/research/descript.md. Keep PR #2 draft until live evidence is available.

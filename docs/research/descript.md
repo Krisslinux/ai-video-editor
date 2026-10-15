@@ -1,6 +1,6 @@
 # Descript AI editing workflow research
 
-Status (2026-10-15): public-source analysis complete; no REA evidence or disposable Descript project has been captured. The owner supplied a Desktop/Descript.lnk shortcut path, but its existence and target have not been verified. The live investigation is blocked because local commands and UI control fail before startup in this Codex environment. Application version, OS, project state, REA version, and artifact hash are unknown. Do not describe vendor statements below as direct observations.
+Status (2026-10-15): public-source analysis complete; no REA evidence or disposable Descript project has been captured. The owner now reports Descript 2.21.1 installed under the user's LocalAppData Programs directory, but this executable and version have not been independently verified. Local commands and UI control still fail before startup in this Codex environment, and no REA MCP tools are connected. OS host identity, project state, REA version, and artifact hash are unknown. Do not describe vendor statements below as direct observations.
 
 ## Evidence ledger
 
@@ -63,3 +63,19 @@ The owner supplied a path ending in Desktop/Descript.lnk. The .lnk extension ind
 | Current REA tool inventory | No REA MCP tool is exposed in this session. | No REA diagnostic, package inspection, runtime trace, or Evidence ID was produced. |
 
 The reported shortcut, its possible target, and any existing Descript projects were left untouched. No installation, execution, test project, network capture, or export was attempted. A functioning local runtime is required to identify the target first. On that host, verify the supplied shortcut exists, resolve its target without launching it, then check the target and installed-app locations without modifying them; record the exact full path, whether it is an installer or application, file version/build, SHA-256, and OS. Then read the installed REA skill, run rea doctor --client codex --json, and choose package/JavaScript inspection for an installer or bounded runtime inspection for an installed app. Only after target identity is confirmed should the disposable-project tests above run. If only an installer is available, behavioral claims remain untested.
+
+
+## Host recheck: 2026-10-15 22:42 UTC
+
+The owner reports an installed Descript.exe under %LOCALAPPDATA%/Programs/Descript and version 2.21.1. That is a user report, not a file inspection. The reported shortcut and executable have not been opened, hashed, or version-checked by this agent.
+
+| Check | Actual result | Evidence limit |
+| --- | --- | --- |
+| Harmless PowerShell Write-Output 'runtime-ok' | Process creation failed before command startup: helper_unknown_error: setup refresh had errors. | No filesystem or version check ran. |
+| Alternate cmd.exe ver with login disabled | The same process-creation failure occurred. | The blocker is not specific to PowerShell syntax. |
+| Computer-use cua.getState() | Controller kernel exited with windows sandbox failed: helper_unknown_error: setup refresh had errors. | No desktop application or project was observed. |
+| REA tool inventory | No REA MCP tool is exposed. | No REA doctor, package analysis, runtime trace, or Evidence ID exists. |
+
+The reported Descript installation and all existing projects remain untouched. Pause removal, captions, clip shortening, preview, undo, export, and A/V offset were not tested. The exact AI context and action protocol, local execution boundary, and server logic are still unknown.
+
+Once the host executor works, first verify the reported executable's existence, VersionInfo, SHA-256, and OS; read the installed REA skill; run rea doctor --client codex --json and inspect the connected tool list. For this installed desktop target, use the advertised Electron/JavaScript package and bounded runtime workflows, recording the artifact identity and REA Evidence IDs. Create only the synthetic disposable project described above, run the three requests separately, and compare before/after timeline and decoded export. Never copy target binaries, credentials, raw captures, or media into this public repository.
