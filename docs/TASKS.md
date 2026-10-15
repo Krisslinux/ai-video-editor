@@ -5,13 +5,13 @@ Statuses: done, in progress, pending, blocked. Completion checks are evidence, n
 ## Foundation
 
 - [x] Identify the repository and inspect main: initial README, .gitignore, and MIT LICENSE only (2026-10-15).
-- [ ] Commit shared records on setup/development-foundation and open a draft PR. Branch created with verified GitHub App write access. Check: draft PR URL, commit SHA, exact changed files.
+- [x] Commit shared records on setup/development-foundation and open [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1). Commit 4680d9af9083ad51fe11273d8c7f33b4fde3fc6b contains 11 intended changed files; branch diff was inspected.
 - [ ] Confirm existing MIT license with owner; record final choice and review dependency obligations before adopting a stack. Check: decision in PROJECT.md.
 - [ ] Verify REA with documented doctor output and inspect a lawful Descript version/platform. Check: evidence, observations, limitations in docs/research/descript.md. Local runtime currently unavailable.
 - [ ] Enable CodeRabbit for this repository's PRs. Check: installation covers this repo and review appears on a test draft PR. A configuration file alone is insufficient.
 - [ ] Create a runnable minimal scaffold and add Windows/macOS/Linux checks for actual commands. Check: commands run locally where possible and CI results are recorded by platform.
 - [ ] Add Sentry to the runnable app with strict scrubbing. Check: a safe test event arrives without credentials, media, prompts, or transcript text.
-- [ ] Link the committed Git plan/tasks from the private Notion project page. Page exists; links await committed files. Check: page links to the committed docs; Git remains authoritative.
+- [x] Link the Git plan/tasks from the [private Notion project page](https://app.notion.com/p/3fa677d871be81f78d69e1cb4a9acca1). Page was fetched after update; Git remains authoritative.
 
 ## First product milestone
 
