@@ -23,4 +23,4 @@ This repository is the common source of truth for the owner's two Codex accounts
 - Detect provider capabilities. Treat ChatGPT Plus sign-ins as development accounts, never pooled application credentials.
 - Keep API tokens in supported secret storage or ignored local configuration. Commit placeholders only. Exclude credentials, private media, and sensitive prompt content from logs and telemetry.
 - Run generated visual code with restricted capabilities and resource limits. Keep REA target binaries, extracted application files, and research captures outside this public repository.
-- Before adding a dependency, record its license and distribution implications. Preserve the existing MIT LICENSE while the owner confirms its final choice.
+- Before adding a dependency, record its license and distribution implications. The owner confirmed the existing MIT LICENSE on 2026-10-15; check each adopted dependency's license and distribution obligations.

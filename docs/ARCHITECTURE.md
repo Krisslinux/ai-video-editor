@@ -25,3 +25,7 @@ Represent time using integer ticks or rational frame/sample positions, not cumul
 - No stack is selected by this document. Validate the candidate through a small import/preview/export prototype and cross-platform build before committing to it.
 
 Sources: https://v2.tauri.app/concept/architecture/ ; https://github.com/facebook/react/blob/main/LICENSE ; https://ffmpeg.org/legal.html .
+
+## AI decision and media execution boundary
+
+The [Descript research record](research/descript.md) suggests a user-facing pattern, but Descript's internal protocol is unverified. For this project, the AI receives a scoped context manifest with stable media IDs, transcript spans, timeline revision, and optional visual descriptions. It proposes typed edit operations; the project core validates targets, timing, capabilities, and revision before committing one undoable transaction. The media engine alone performs cuts, audio mixing, captions, preview, and export from that transaction. Preserve original media and expose the plan/diff so users can revise by chat or manually. This is our design proposal, not a reconstruction of Descript internals.
