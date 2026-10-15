@@ -1,6 +1,6 @@
 # Descript AI editing workflow research
 
-Status (2026-10-15): public-source analysis complete; no REA evidence or disposable Descript project has been captured. The live investigation is blocked because local commands and UI control fail before startup in this Codex environment. Application version, OS, project state, REA version, and artifact hash are unknown. Do not describe vendor statements below as direct observations.
+Status (2026-10-15): public-source analysis complete; no REA evidence or disposable Descript project has been captured. The owner supplied a Desktop/Descript.lnk shortcut path, but its existence and target have not been verified. The live investigation is blocked because local commands and UI control fail before startup in this Codex environment. Application version, OS, project state, REA version, and artifact hash are unknown. Do not describe vendor statements below as direct observations.
 
 ## Evidence ledger
 
@@ -50,3 +50,16 @@ Apply a plan as one atomic, reversible timeline transaction over immutable sourc
 ## Remaining evidence needed
 
 No Descript app or project was opened, no request was sent, no REA Evidence ID exists, and no before/after or export measurement exists. The exact model context, tool calls, project mutation protocol, local/cloud execution split, and server logic remain unresolved.
+
+## Host and target checks: 2026-10-15 22:13–22:16 UTC
+
+The owner supplied a path ending in Desktop/Descript.lnk. The .lnk extension indicates a Windows shortcut, but the file's existence and its target are unverified. It could point to an installed application, an installer, or another location. The executable path, file type, product version, build, hash, and host identity remain unverified.
+
+| Check | Result | Consequence |
+| --- | --- | --- |
+| User-supplied Desktop/Descript.lnk path | Path was not resolved or read. | Shortcut destination and installed-versus-installer status remain unknown. |
+| Harmless PowerShell command: Write-Output 'runtime-ok' in C:\Windows\System32 (retried at 22:16 UTC) | Process creation failed before PowerShell started: helper_unknown_error: setup refresh had errors. | Files, installed programs, and the shortcut target could not be enumerated. |
+| Computer-use inventory: cua.getState() | The controller kernel exited before UI state was returned with the same Windows sandbox setup error. | No Descript window, installer, login, or project was observed. |
+| Current REA tool inventory | No REA MCP tool is exposed in this session. | No REA diagnostic, package inspection, runtime trace, or Evidence ID was produced. |
+
+The reported shortcut, its possible target, and any existing Descript projects were left untouched. No installation, execution, test project, network capture, or export was attempted. A functioning local runtime is required to identify the target first. On that host, verify the supplied shortcut exists, resolve its target without launching it, then check the target and installed-app locations without modifying them; record the exact full path, whether it is an installer or application, file version/build, SHA-256, and OS. Then read the installed REA skill, run rea doctor --client codex --json, and choose package/JavaScript inspection for an installer or bounded runtime inspection for an installed app. Only after target identity is confirmed should the disposable-project tests above run. If only an installer is available, behavioral claims remain untested.

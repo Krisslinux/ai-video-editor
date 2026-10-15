@@ -1,24 +1,27 @@
 # Handoff
 
-Updated: 2026-10-15 UTC
+Updated: 2026-10-15 22:16 UTC
 
 ## Working state
 
-Repository: https://github.com/Krisslinux/ai-video-editor (public). Active remote branch: setup/development-foundation. Base: main at f033cb71ad3b4539187ec79ed146bf764a03b4fa. Last relevant code commit: none; this branch contains documentation and configuration only. Inspect [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1) for the current branch head. This session has no verified local clone; local worktree status could not be checked.
+Repository: https://github.com/Krisslinux/ai-video-editor (public). Active remote branch: research/descript-desktop, created from setup/development-foundation at 741d1002df589e135af84035a68d36f0eb89fb80. The setup work remains in [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1). Inspect the research branch or its draft PR for its current head. Last relevant application-code commit: none; the repository still contains documentation and configuration only. No local clone or worktree status could be verified in this session.
 
-Completed: inspected the initial repo and confirmed its MIT LICENSE with the owner; added README, AGENTS.md, PROJECT.md, ARCHITECTURE.md, TASKS.md, Descript research log, placeholder provider config, local-data ignores, line-ending policy, and CodeRabbit draft-review config. The [private Notion navigation page](https://app.notion.com/p/3fa677d871be81f78d69e1cb4a9acca1) links to the Git plan, tasks, handoff, and draft PR. CodeRabbit completed a review of PR #1 and reported two documentation findings; this branch addresses them. Descript public-source findings and a disposable-project REA test protocol are recorded in docs/research/descript.md.
+Completed before this session: shared foundation records, MIT decision, CodeRabbit review configuration, Notion links, and public-source Descript research. The research file includes an isolated three-request disposable-project protocol and separates vendor statements from observed evidence.
 
-Unfinished: dependency license review, a runnable desktop scaffold, CPU media proof, Windows/macOS/Linux checks, Sentry setup, REA diagnostics, and three isolated Descript test edits remain. Public Descript documentation is summarized with a runnable test protocol; no live app evidence exists. No application code, build command, or CI workflow exists yet.
+Completed this session: read AGENTS.md, PROJECT.md, TASKS.md, HANDOFF.md, and the Descript research record from the remote branch; checked that the setup branch is ahead of main and has no commits behind; created the research branch; retried a harmless shell command, computer-use inventory, and REA tool discovery. The owner supplied a Desktop/Descript.lnk shortcut path, but no host tool could verify the file or resolve its target. A fresh harmless shell and UI retry failed before startup. The [Descript research log](docs/research/descript.md) records these checks.
 
-## Checks and limitations
+## Checks and blockers
 
-- GitHub App installation and branch writes: verified. Compared setup branch with main: 11 intended changed files, zero commits behind. Draft PR #1 is open and mergeable.
-- CodeRabbit bot loaded .coderabbit.yaml, posted a PR summary, and completed a review with two findings. The review's follow-up on these fixes may still be pending.
-- Notion page: fetched and confirmed links to the Git plan, tasks, handoff, and PR.
-- Sentry connection: organization kriss-linux responds; it has zero projects. REA MCP tools are not exposed.
-- The provided working directory is C:\Windows\system32, but local command and computer-use runtimes fail before startup with `helper_unknown_error: setup refresh had errors`. This environment has not been confirmed as the AWS RDP host. No REA doctor, build, rendering, or platform check ran.
-- Descript research now maps five workflow questions to vendor evidence and unknowns, and specifies before/after tests for pauses, captions, and clip trim. No application version, platform, disposable project, REA Evidence ID, or measured export has been inspected. The local REA skill file was also inaccessible because the command runtime failed; the public upstream skill was consulted.
+- PowerShell process creation for Write-Output 'runtime-ok' failed before startup with helper_unknown_error: setup refresh had errors.
+- Computer-use inventory exited before returning UI state with the same Windows sandbox error. No REA MCP tools are exposed.
+- The user-reported Desktop/Descript.lnk shortcut has not been read. Its target path, installer-versus-installed status, version/build/hash, OS host identity, and project availability are unknown. The working directory is C:\Windows\System32; it has not been confirmed as the AWS RDP machine.
+- No REA Evidence ID, static package analysis, runtime trace, AI editing test, preview, undo, sync measurement, or export exists. Descript installation and existing projects were untouched.
+- GitHub connector reads and branch writes work. The existing setup PR is draft; no application build or platform check exists.
+
+## Unfinished work
+
+Identify the downloaded target, run REA diagnostics and the three isolated Descript edits in a disposable project, and record sanitized before/after evidence. Dependency license review, runnable desktop scaffold, CPU media proof, cross-platform checks, and Sentry setup remain separate foundation tasks.
 
 ## Exact next action
 
-From a functioning checkout of setup/development-foundation, run `rea doctor --client codex --json`, record REA readiness, then execute the three isolated Descript tests in docs/research/descript.md using synthetic media. Save sanitized REA Evidence IDs and measured before/after results in that file; keep PR #1 in draft.
+When a local command runtime is available, run a harmless shell check, verify the supplied Desktop/Descript.lnk shortcut and resolve its target without launching it; then record target full path, installer/application identity, version/build, SHA-256, and OS. Then run rea doctor --client codex --json and follow the target-appropriate REA workflow. Keep the research PR in draft until the live evidence is captured.
