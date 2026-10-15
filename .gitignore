@@ -147,3 +147,11 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local project data and private research
+local/
+private-media/
+research-artifacts/
+*.asar
+*.har
+*.saz
