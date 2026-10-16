@@ -1,0 +1,296 @@
+{
+  "kind": "synthetic-source-fixtures",
+  "not_descript_exports": true,
+  "clips": [
+    {
+      "file": "clip-A.avi",
+      "seconds": 12,
+      "frames": 360,
+      "frame_rate": {
+        "num": 30,
+        "den": 1
+      },
+      "width": 320,
+      "height": 180,
+      "video": "uncompressed RGB24 DIB bottom-up",
+      "sample_rate": 48000,
+      "channels": 2,
+      "audio": "PCM signed 16-bit LE",
+      "left": "click markers only",
+      "right": "speech only",
+      "markers": [
+        {
+          "frame": 3,
+          "sample": 4800,
+          "seconds": 0.1
+        },
+        {
+          "frame": 180,
+          "sample": 288000,
+          "seconds": 6
+        },
+        {
+          "frame": 345,
+          "sample": 552000,
+          "seconds": 11.5
+        }
+      ],
+      "speech": [
+        {
+          "word": "one",
+          "scheduled_sample": 24000,
+          "pcm_samples": 59976,
+          "detected_start_sample": 29302,
+          "detected_end_sample": 47143,
+          "threshold": 64
+        },
+        {
+          "word": "two",
+          "scheduled_sample": 96000,
+          "pcm_samples": 53976,
+          "detected_start_sample": 101039,
+          "detected_end_sample": 113765,
+          "threshold": 64
+        },
+        {
+          "word": "three",
+          "scheduled_sample": 216000,
+          "pcm_samples": 59496,
+          "detected_start_sample": 222059,
+          "detected_end_sample": 238597,
+          "threshold": 64
+        },
+        {
+          "word": "four",
+          "scheduled_sample": 312000,
+          "pcm_samples": 60936,
+          "detected_start_sample": 317443,
+          "detected_end_sample": 336667,
+          "threshold": 64
+        },
+        {
+          "word": "five",
+          "scheduled_sample": 408000,
+          "pcm_samples": 63576,
+          "detected_start_sample": 413443,
+          "detected_end_sample": 434851,
+          "threshold": 64
+        },
+        {
+          "word": "six",
+          "scheduled_sample": 480000,
+          "pcm_samples": 65496,
+          "detected_start_sample": 485204,
+          "detected_end_sample": 509144,
+          "threshold": 64
+        }
+      ],
+      "silent_gaps": [
+        {
+          "from_sample": 47143,
+          "to_sample": 101039,
+          "duration_seconds": 1.1228333333333333
+        },
+        {
+          "from_sample": 113765,
+          "to_sample": 222059,
+          "duration_seconds": 2.256125
+        },
+        {
+          "from_sample": 238597,
+          "to_sample": 317443,
+          "duration_seconds": 1.642625
+        },
+        {
+          "from_sample": 336667,
+          "to_sample": 413443,
+          "duration_seconds": 1.5995
+        },
+        {
+          "from_sample": 434851,
+          "to_sample": 485204,
+          "duration_seconds": 1.0490208333333333
+        }
+      ]
+    },
+    {
+      "file": "clip-B.avi",
+      "seconds": 8,
+      "frames": 240,
+      "frame_rate": {
+        "num": 30,
+        "den": 1
+      },
+      "width": 320,
+      "height": 180,
+      "video": "uncompressed RGB24 DIB bottom-up",
+      "sample_rate": 48000,
+      "channels": 2,
+      "audio": "PCM signed 16-bit LE",
+      "left": "click markers only",
+      "right": "speech only",
+      "markers": [
+        {
+          "frame": 3,
+          "sample": 4800,
+          "seconds": 0.1
+        },
+        {
+          "frame": 120,
+          "sample": 192000,
+          "seconds": 4
+        },
+        {
+          "frame": 225,
+          "sample": 360000,
+          "seconds": 7.5
+        }
+      ],
+      "speech": [
+        {
+          "word": "one",
+          "scheduled_sample": 24000,
+          "pcm_samples": 59976,
+          "detected_start_sample": 29302,
+          "detected_end_sample": 47143,
+          "threshold": 64
+        },
+        {
+          "word": "two",
+          "scheduled_sample": 72000,
+          "pcm_samples": 53976,
+          "detected_start_sample": 77039,
+          "detected_end_sample": 89765,
+          "threshold": 64
+        },
+        {
+          "word": "three",
+          "scheduled_sample": 120000,
+          "pcm_samples": 59496,
+          "detected_start_sample": 126059,
+          "detected_end_sample": 142597,
+          "threshold": 64
+        },
+        {
+          "word": "four",
+          "scheduled_sample": 216000,
+          "pcm_samples": 60936,
+          "detected_start_sample": 221443,
+          "detected_end_sample": 240667,
+          "threshold": 64
+        },
+        {
+          "word": "five",
+          "scheduled_sample": 264000,
+          "pcm_samples": 63576,
+          "detected_start_sample": 269443,
+          "detected_end_sample": 290851,
+          "threshold": 64
+        },
+        {
+          "word": "six",
+          "scheduled_sample": 312000,
+          "pcm_samples": 65496,
+          "detected_start_sample": 317204,
+          "detected_end_sample": 341144,
+          "threshold": 64
+        }
+      ],
+      "silent_gaps": [
+        {
+          "from_sample": 47143,
+          "to_sample": 77039,
+          "duration_seconds": 0.6228333333333333
+        },
+        {
+          "from_sample": 89765,
+          "to_sample": 126059,
+          "duration_seconds": 0.756125
+        },
+        {
+          "from_sample": 142597,
+          "to_sample": 221443,
+          "duration_seconds": 1.642625
+        },
+        {
+          "from_sample": 240667,
+          "to_sample": 269443,
+          "duration_seconds": 0.5995
+        },
+        {
+          "from_sample": 290851,
+          "to_sample": 317204,
+          "duration_seconds": 0.5490208333333333
+        }
+      ]
+    }
+  ],
+  "music": {
+    "file": "music.wav",
+    "seconds": 20,
+    "sample_rate": 48000,
+    "channels": 2
+  },
+  "files": [
+    {
+      "name": "clip-A-audio.wav",
+      "bytes": 2304044,
+      "sha256": "bacf5fe4caf2f1d327fc622e403e34fcd9bf8c2aa8a064db7d9775c95b6a9d3f"
+    },
+    {
+      "name": "clip-A.avi",
+      "bytes": 64529612,
+      "sha256": "1ebfd38cfde3910a6a0518e4d8a0a470966d60cc071a86b4794b79a93a7cf0aa"
+    },
+    {
+      "name": "clip-B-audio.wav",
+      "bytes": 1536044,
+      "sha256": "bdd2151e58b314c73389ad74be487c4757a9e616006528821dfee070cd5ca60a"
+    },
+    {
+      "name": "clip-B.avi",
+      "bytes": 43019852,
+      "sha256": "5d9e34efdf51fcb0132c2692a87b191792798b88cb036b41f5d230ac55ffa4e8"
+    },
+    {
+      "name": "five.wav",
+      "bytes": 127198,
+      "sha256": "2c3295b618d58052ce0a0ffa6cb605d1a508628a4e09e091697dce006ca08519"
+    },
+    {
+      "name": "four.wav",
+      "bytes": 121918,
+      "sha256": "e014fc2e506d2fbaae77fc548a751ff2e24490d68017f04b46d5a08a80641dc3"
+    },
+    {
+      "name": "music.wav",
+      "bytes": 3840044,
+      "sha256": "19478304976a1388e55f9828cf58ae77ddf5f7a3517af6d5ca319b5b99db4180"
+    },
+    {
+      "name": "one.wav",
+      "bytes": 119998,
+      "sha256": "01a1fd61d135ccf9d128536b60745d0ae86cb42d1a3ed52755678bee0fc60cb3"
+    },
+    {
+      "name": "six.wav",
+      "bytes": 131038,
+      "sha256": "5a384cd63f13f64205a87fc3a7229c8edfb19b97f96f46e9a807365eb28443c9"
+    },
+    {
+      "name": "three.wav",
+      "bytes": 119038,
+      "sha256": "49486cd93af958d34b6fa241cd94605f501188e7d6afa380faafec56d29b8e6c"
+    },
+    {
+      "name": "two.wav",
+      "bytes": 107998,
+      "sha256": "1f12886642ec38c452b233aa4bdc15a099014379815a278119dcd3734ddfe925"
+    }
+  ],
+  "limitations": [
+    "Descript AVI import compatibility is untested.",
+    "Detected speech boundaries use PCM amplitude threshold, not phoneme alignment.",
+    "A/V export and caption error require independent decoding after Descript tests."
+  ]
+}

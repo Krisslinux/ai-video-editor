@@ -8,8 +8,8 @@ Statuses: done, in progress, pending, blocked. Completion checks are evidence, n
 - [x] Commit shared records on setup/development-foundation and open [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1). Commit 4680d9af9083ad51fe11273d8c7f33b4fde3fc6b contains 11 intended changed files; branch diff was inspected.
 - [x] Confirm existing MIT license with owner and record the decision in PROJECT.md (2026-10-15).
 - [ ] Review dependency obligations before adopting a stack. Check: record license and packaging decisions for selected dependencies; no stack dependency has been adopted yet.
-- [x] Research Descript's documented AI editing workflow and write an isolated disposable-project test protocol in docs/research/descript.md (2026-10-15). These are vendor statements, not live observations.
-- [ ] Run REA diagnostics and three isolated Descript edits in a disposable project. Check: app/version/hash, REA Evidence IDs, before/after timeline and preview, undo/redo, export sync measurements, and local/cloud limits in docs/research/descript.md. Blocked: local command and UI runtimes fail before startup.
+- [x] Research Descript's documented AI editing workflow and write an isolated disposable-project test protocol in docs/research/descript.md (2026-10-15); expand it with REA installed-package evidence and a feature matrix (2026-10-16). Vendor statements and static clues remain distinct from live behavior.
+- [ ] Complete live Descript disposable-project tests A–E. VersionInfo, remote shell, REA live access and normal process launch now work (2026-10-16 resumed run). Synthetic AVI/PCM sources are generated and verified, with six source marker offsets of 0 ms. Administrator RDP session 2 remains disconnected; capture fails with “The handle is invalid” and no actionable editor controls are visible. No Descript import, AI edit, export, undo/redo or export timing measurement ran. Reconnect/unlock the desktop, then execute the baseline and independent tests. See research E6 and the source manifests.
 - [x] Enable CodeRabbit for this repository's PRs. Its bot loaded .coderabbit.yaml and completed a review on draft PR #1 with two documentation findings; both are addressed on the setup branch.
 - [ ] Create a runnable minimal scaffold and add Windows/macOS/Linux checks for actual commands. Check: commands run locally where possible and CI results are recorded by platform.
 - [ ] Add Sentry to the runnable app with strict scrubbing. Check: a safe test event arrives without credentials, media, prompts, or transcript text.
@@ -27,3 +27,7 @@ Statuses: done, in progress, pending, blocked. Completion checks are evidence, n
 - [ ] Expand transcript editing, captions, transitions, and effects.
 - [ ] Add creation workflow, generated visuals sandbox, and optional speech/music models.
 - [ ] Evaluate local models and hardware acceleration on supported hardware.
+
+## Research tooling completed in the resumed run
+
+- [x] Add dependency-free source fixture generation and RIFF/PCM verification scripts; run them on Windows, record hashes, durations, marker positions and source offsets. Descript compatibility and export synchronization remain untested.
