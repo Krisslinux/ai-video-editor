@@ -1,25 +1,36 @@
 # Handoff
 
-Updated: 2026-10-16 UTC
+Updated: 2026-10-16 UTC, resumed remote inspection
 
 ## Working state
 
-Repository: https://github.com/Krisslinux/ai-video-editor. Remote research branch: `research/descript-desktop`, based on `setup/development-foundation`; [draft PR #2](https://github.com/Krisslinux/ai-video-editor/pull/2) remains open and unmerged. Before this update the PR head was `ba290e77f2b6674c4b10279d332ce7c13c1499b8`. No local clone/working-tree status can be verified because the local process helper fails before startup. GitHub connector reads/writes are available. Last relevant application-code commit: none; research and architecture are documentation only.
+Repository: https://github.com/Krisslinux/ai-video-editor. Branch: `research/descript-desktop`; base: `setup/development-foundation`. Draft PR #2 remains open and unmerged. This run began from `50bd640399d3ea717c7d3089a5711c1a61c0e392` in a clean new clone at `C:\Users\Administrator\Documents\descript-research-20261016-1035\repo`. See the draft PR for this update's resulting commit. No application scaffold exists.
 
-Read AGENTS.md, PROJECT.md, ARCHITECTURE.md, TASKS.md, prior research and this handoff at session start. The owner reported version 2.21.1; **current VersionInfo remains unverified**, though the actual installed executable is verified by REA.
+Read AGENTS.md, docs/PROJECT.md, docs/ARCHITECTURE.md, docs/TASKS.md and docs/research/descript.md before continuing.
 
-## Completed and verified
+## Verified progress
 
-- REA MCP connection works and reports Windows Server 2025 x64 analysis capability. A harmless PowerShell `Write-Output runtime-ok` still fails before startup with `helper_unknown_error: setup refresh had errors`. This is a process-helper failure, not evidence that REA is down.
-- REA read `C:\Users\Administrator\AppData\Local\Programs\Descript\Descript.exe`: PE, 225,544,120 bytes, SHA-256 `58eda5d6578cda6938a2cfd285d3db3e8d594a4f330f19a96ef0e5abd975a027`. Electron fuses disable RunAsNode/Node CLI Inspector flags and enable ASAR integrity and app.asar-only loading (research E1).
-- REA read `resources\app.asar`: SHA-256 `0dea09d7ca4c8ff22a43e0f6818f1ec480d3bc0d2050ccdbfe217fcc1b1e86de`; complete 12-occurrence inventory, main/preload Webpack bundles, package metadata. Selected static JS analysis found Electron windows, context bridge and IPC candidates, **not** a demonstrated editor/AI protocol (E2–E3). PE resource inventory located but did not decode a VERSION resource (E4). Extraction into REA temp outside Git succeeded (E5).
-- Reviewed current official Descript help for import, timeline/script, captions/subtitle export, audio ducking, AI Quick Design/API, transitions, and MP4 export. Added a source-labeled feature matrix and a bounded design contract in research/architecture.
-- REA controlled Electron startup exited before a window attached. Windows computer-use kernel still exits, and the Remote Desktop Commander device `EC2AMAZ-D44MF4F` timed out on ping/read/info; “Online” was stale. The installed REA skill file could not be read through those channels; the upstream public skill was read instead. No existing Descript project was changed.
+- Remote Desktop Commander 0.3.0 and Windows PowerShell work on EC2AMAZ-D44MF4F. Old device registration became stale; current connected ID is `e7dd0e58-5d01-47d7-a3f5-90b8e63c2ae3`. Re-discover if it changes.
+- Windows Server 2025 x64 reports 8 logical processors and about 31.5 GiB RAM. Product target remains 4 cores/16 GB, so this host cannot alone validate that baseline.
+- Descript ProductVersion/FileVersion 2.21.1; executable and ASAR hashes match prior E1/E2.
+- Installed Codex CLI 0.162.1 responds to version/help. This Codex conversation uses remote tools directly; no nested worker was launched. The Windows CLI's model/auth/sandbox execution was not retested.
+- Installed REA 6.5.0 / skill 42: doctor healthy; direct stdio MCP binary_session succeeds. Engine availability differs between the configured Codex environment and the direct client. No optional native engine is needed for the current question.
+- Full-ASAR analysis E6 completed: four JS files parsed, 405 modules, partial semantic coverage; no recovered AI edit protocol.
+- Normal Descript launch now exposes “Drive View | Descript.” Session 2 remains disconnected; screen capture fails with “The handle is invalid”; UI Automation has only nine wrapper panes.
+- Generated and verified two numbered 30-fps AVI source clips, 48-kHz speech/click audio and music. All six source markers align at 0 ms. This is not a Descript export result.
 
-## Not completed / exact blockers
+## Preserved evidence and commands
 
-No disposable project or synthetic media was created; no AI prompt, baseline/edited export, undo/redo, credit observation, or A/V/caption timing measurement exists. Do not describe documented Descript functions as tested. Current version and detailed installation inventory beyond the executable/ASAR remain unverified. Local versus cloud editor execution, exact AI context/action protocol, and server logic remain unknown. No runnable application scaffold or cross-platform build exists.
+Run root: `C:\Users\Administrator\Documents\descript-research-20261016-1035`. Media and large/raw evidence stay outside the repo. `fixtures\manifest.json` and `fixtures\verification.json` identify generated media. `app-evidence.json` contains complete E6, `static-summary.json` its bounded summary, and `rea-live-session.json` the direct MCP result. Sanitized summaries/manifests and reproduction scripts are committed under docs/research/evidence and scripts/research.
 
-## Exact next action
+Working routes:
+- PowerShell `Write-Output 'rdp-shell-ok'`, `query session`, literal-path Get-Item/Get-FileHash.
+- `C:\Users\Administrator\AppData\Roaming\npm\rea.cmd doctor --client codex --json`.
+- Same public launcher with `analyze-javascript-application <app.asar> --format json`, stdout redirected outside Git.
+- Fixture generation/verification commands in scripts/research/README.md.
 
-Restore a responsive Windows desktop/file/process channel for `EC2AMAZ-D44MF4F` (Remote Desktop Commander last-seen must become current and ping/read succeed, or fix the Codex process/UI helper). Then read the installed `C:\Users\Administrator\.agents\skills\reverse-engineer-anything\SKILL.md`, decode Descript.exe VersionInfo, and run a normal UI-only disposable project with the pre-registered baseline and tests A–E in [docs/research/descript.md](docs/research/descript.md). Keep project/media/export artifacts outside Git; record exact prompts, snapshots, decoded marker timing, and REA evidence IDs. If current UI access requires login or paid credits, request only that specific user action. Once results are recorded, commit and push on this branch and update draft PR #2. The next product implementation task after research is the CPU two-clip/audio import-edit-preview-undo-export vertical slice.
+## Unfinished and exact next action
+
+**Reconnect/unlock the Administrator RDP desktop on EC2AMAZ-D44MF4F and leave it connected.** Recheck session state and capture, then create only a disposable Descript project and execute the baseline and separate tests A–E. No test prompt, credit observation, project save/reopen, undo/redo, Descript export or A/V/caption measurement exists yet. Do not repeat stale installer/sandbox repairs or treat source verification as export acceptance.
+
+Keep prior projects untouched and preserve account privacy. Do not modify packaged fuses, permissions, Defender or firewall. Continue documentation and draft PR updates after evidence collection; do not merge. The next implementation milestone remains import two clips/audio, one validated reversible AI edit, preview, undo and measured CPU export.

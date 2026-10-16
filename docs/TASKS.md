@@ -9,7 +9,7 @@ Statuses: done, in progress, pending, blocked. Completion checks are evidence, n
 - [x] Confirm existing MIT license with owner and record the decision in PROJECT.md (2026-10-15).
 - [ ] Review dependency obligations before adopting a stack. Check: record license and packaging decisions for selected dependencies; no stack dependency has been adopted yet.
 - [x] Research Descript's documented AI editing workflow and write an isolated disposable-project test protocol in docs/research/descript.md (2026-10-15); expand it with REA installed-package evidence and a feature matrix (2026-10-16). Vendor statements and static clues remain distinct from live behavior.
-- [ ] Complete live Descript disposable-project tests A–E. Check: verified VersionInfo, exact prompts and before/after snapshots, undo/redo, baseline and edited exports, and numerical A/V/caption timing. On 2026-10-16 REA static package inspection succeeded (E1–E5 in research), but PowerShell/UI helper and Remote Desktop Commander device calls failed, and REA's controlled Electron launch exited before attachment. No behavioral test or measurement ran. Restore a working desktop/file/process route before this item can close.
+- [ ] Complete live Descript disposable-project tests A–E. VersionInfo, remote shell, REA live access and normal process launch now work (2026-10-16 resumed run). Synthetic AVI/PCM sources are generated and verified, with six source marker offsets of 0 ms. Administrator RDP session 2 remains disconnected; capture fails with “The handle is invalid” and no actionable editor controls are visible. No Descript import, AI edit, export, undo/redo or export timing measurement ran. Reconnect/unlock the desktop, then execute the baseline and independent tests. See research E6 and the source manifests.
 - [x] Enable CodeRabbit for this repository's PRs. Its bot loaded .coderabbit.yaml and completed a review on draft PR #1 with two documentation findings; both are addressed on the setup branch.
 - [ ] Create a runnable minimal scaffold and add Windows/macOS/Linux checks for actual commands. Check: commands run locally where possible and CI results are recorded by platform.
 - [ ] Add Sentry to the runnable app with strict scrubbing. Check: a safe test event arrives without credentials, media, prompts, or transcript text.
@@ -27,3 +27,7 @@ Statuses: done, in progress, pending, blocked. Completion checks are evidence, n
 - [ ] Expand transcript editing, captions, transitions, and effects.
 - [ ] Add creation workflow, generated visuals sandbox, and optional speech/music models.
 - [ ] Evaluate local models and hardware acceleration on supported hardware.
+
+## Research tooling completed in the resumed run
+
+- [x] Add dependency-free source fixture generation and RIFF/PCM verification scripts; run them on Windows, record hashes, durations, marker positions and source offsets. Descript compatibility and export synchronization remain untested.

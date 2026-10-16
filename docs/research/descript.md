@@ -1,6 +1,6 @@
 # Descript AI editing workflow research
 
-Status (2026-10-15): public-source analysis complete; no REA evidence or disposable Descript project has been captured. The owner now reports Descript 2.21.1 installed under the user's LocalAppData Programs directory, but this executable and version have not been independently verified. Local commands and UI control still fail before startup in this Codex environment, and no REA MCP tools are connected. OS host identity, project state, REA version, and artifact hash are unknown. Do not describe vendor statements below as direct observations.
+Current status (2026-10-16, resumed run): Remote Desktop Commander shell/file access and direct REA CLI/MCP calls work. Descript VersionInfo is verified as 2.21.1 and normal startup exposes a Drive View window. Synthetic source fixtures were generated and verified. The Administrator desktop remains disconnected; screen capture and actionable UI inspection are blocked. No disposable project, AI request, Descript export, undo/redo, or export timing measurement has been completed. Earlier sections below are historical records; the resumed-run section supersedes their readiness status.
 
 ## Evidence ledger
 
@@ -136,3 +136,50 @@ For the resumed experiment, place flash/click pairs at known source sample and f
 Our first vertical slice should import two clips and a separate audio track, accept one scoped AI edit, show a diff/timeline/preview, undo it, and export an MP4 whose decoded flash/click offsets are measured. Project state must retain immutable asset IDs, probed source timebases, tracks/clips with source and timeline ranges, transcript word spans, caption cues, effects, and an integer/rational master timebase. A provider adapter selects only supported text/image/tool/structured-output capabilities. Its model receives an explicit context manifest with project revision, selected IDs/ranges, transcript spans, and optional user-approved visual descriptions or sampled frames. It returns a bounded, model-independent operation plan; it never receives arbitrary filesystem/process access.
 
 The project core validates asset IDs, selected scope, source handles, timeline bounds, capability needs, and expected revision. Apply all operations atomically to a cloned timeline, persist the new revision and inverse/previous state, then render preview and export from the same edit graph. Reject stale or ambiguous plans with a replan prompt. Cancellation before commit leaves the project unchanged; after commit, undo restores the prior revision. CPU FFmpeg-based rendering is a candidate, subject to build-specific LGPL/GPL and codec distribution review. This is **our design**, supported by the observed user-facing need for text-linked media and reversible edits; it is not a claim about Descript's internals. See [ARCHITECTURE.md](../ARCHITECTURE.md) for the operation contract.
+
+
+## Resumed run: 2026-10-16, 10:35 UTC onward
+
+### Access and recovery evidence
+
+Run directory on the Windows host: `C:\Users\Administrator\Documents\descript-research-20261016-1035`. The `repo` child is a clean new clone of `research/descript-desktop`, initially at `50bd640399d3ea717c7d3089a5711c1a61c0e392`; no existing checkout was changed. A bounded search of the normal Documents/Codex workspace found no existing project checkout. Draft PR #2 was open, draft and unmerged when checked.
+
+| Layer | Result | Evidence / limitation |
+| --- | --- | --- |
+| Remote connection | Verified | Device EC2AMAZ-D44MF4F came online under a new registration ID; ping returned pong at 10:35:37 UTC. The old ID was stale. |
+| Windows command execution | Verified | Desktop Commander 0.3.0 ran PowerShell 5.1.26100.33451: `rdp-shell-ok`, Get-Location, hostname, file reads, hashes and scripts all returned actual output. |
+| Host | Observed | Windows Server 2025 Datacenter 10.0.26100, x64; 8 logical processors, 33,862,758,400 physical-memory bytes (about 31.5 GiB). This is not proof of performance on the proposed 4-core/16-GB baseline. |
+| Codex | Partially verified | This conversation's Codex executed the remote tools. Installed CLI at `AppData\Local\Programs\OpenAI\Codex\bin\codex.exe` reports 0.162.1 and returns help. No nested Codex worker was launched; local CLI authentication/model/sandbox execution remains untested. Earlier sandbox errors are neither reproduced nor declared fixed. |
+| REA registration | Verified diagnostic | Installed skill v42 and public launcher `AppData\Roaming\npm\rea.cmd` v6.5.0 read successfully. Doctor returned healthy=true and environment_healthy=true, aligned Codex registration. No repair/install/configuration change was needed. |
+| REA live | Verified direct client | A short Node client used the installed MCP SDK and public rea.cmd launcher, discovered 207 tools, called advertised `binary_session({})`, and received isError=false, server 6.5.0, protocol 2025-11-25. This tests a separate direct stdio connection, not the dormant local Codex CLI session. |
+| Optional engines | Scope-dependent | Doctor sees configured Ghidra 12.1.4/IDA/JADX prerequisites. The direct client did not inherit Codex's engine-specific environment, so its Ghidra/IDA candidates are unavailable. No native analysis was needed; Hopper is unsupported on this Windows route. |
+| Desktop session | Blocked | `query session` reports Administrator session 2 as Disc, including a later recheck. A supported shell screenshot attempt returned CopyFromScreen: “The handle is invalid.” UI Automation sees nine wrapper panes but no actionable editor controls. This does not establish login/account state. |
+| Descript process | Verified startup only | Ordinary Start-Process without Inspector/fuse changes produced PID 15656 in session 2, then window title “Drive View &#124; Descript.” No project was opened or modified. |
+| Editing/exports | Untested | Baseline and tests A–E remain blocked on a usable desktop. No prompt was sent, credit consumed by a test, or Descript export measured. |
+
+The installed executable's ProductVersion and FileVersion both read **2.21.1**. SHA-256 matches E1: `58eda5d6578cda6938a2cfd285d3db3e8d594a4f330f19a96ef0e5abd975a027`. Resource inventory contains app.asar, app-update.yml, elevate.exe, record-button icons, a Windows input-listener executable and mouse-tracker native module. Presence alone does not prove use in editing.
+
+### E6: completed full-ASAR static pass
+
+Public CLI command: `rea.cmd analyze-javascript-application <verified resources\app.asar> --format json`, with full stdout/stderr retained outside Git. Exit code 0. Evidence ID: `ev_a6a061677b0a3a5b4ece35981061987585e0f6f2a98b2b5aa8cdf0e5ea038498`. ASAR SHA-256 still matches E2. Unlike E3's selected-source pass, this run parsed all four inventoried JavaScript files plus package metadata: 1,009,460 text bytes, 405 recovered modules, 1,243 findings, zero parse failures. The Electron summary remains 2 browser windows, 2 context bridges, 46 exposed members and 112 IPC operations (35 literal channels, 18 dynamic-channel operations). See [sanitized summary](evidence/20261016-static-summary.json).
+
+Coverage remains partial despite parsing all source files: dynamic references, runtime reachability, registration and enforcement remain unproven. A focused graph sample shows desktop window-control and permission-query bridge candidates; it does not identify the AI request/operation protocol. This pass adds package coverage, not behavioral proof. Do not infer a vulnerability from zero sender-validation observations or a cloud/local edit architecture from this summary.
+
+### Source fixtures and checks
+
+Reproduction scripts: [speech](../../scripts/research/make-speech.ps1), [media generation](../../scripts/research/make-fixtures.cjs), [source verification](../../scripts/research/verify-fixtures.cjs). See [instructions](../../scripts/research/README.md). No package dependency was added: generation uses installed Windows System.Speech and Node built-ins. The installed Microsoft David Desktop voice supplies six isolated number words. Its generated audio is kept locally; no voice files or proprietary code are distributed.
+
+Two 320×180, 30-fps uncompressed RGB24 AVI files contain numbered frames and PCM16 stereo audio at 48 kHz. Clicks occupy the left channel; speech occupies the right. Separate music is a generated 20-second tone arrangement with one-second fades. Speech placements and amplitude-threshold silence boundaries are recorded in the [manifest](evidence/20261016-fixture-manifest.json); these are not phoneme/caption alignments.
+
+| Source | Duration | Frames / audio samples | Flash frames | Click samples | Measured source offsets |
+| --- | --- | --- | --- | --- | --- |
+| A | 12 s | 360 / 576,000 | 3, 180, 345 | 4,800; 288,000; 552,000 | 0, 0, 0 ms |
+| B | 8 s | 240 / 384,000 | 3, 120, 225 | 4,800; 192,000; 360,000 | 0, 0, 0 ms |
+
+The verifier reads actual RIFF headers, index offsets, video pixels and PCM samples, verifies frame/audio counts and all media hashes, then computes marker offsets. See [verification](evidence/20261016-fixture-verification.json). These are **source files, not Descript exports**. The source sample grid is 0.020833 ms; frame duration is 33.333 ms. An exported visual-onset estimate has at least half-frame (16.667 ms) quantization plus decoder/onset uncertainty. AVI import compatibility, speech transcription and preview remain untested; FFmpeg/ffprobe were absent from PATH and the bounded Tools/Downloads search. Do not call these assets a successful Descript baseline.
+
+Keep media, complete REA graph, raw diagnostics and account-bearing captures outside Git. Before import, create a disposable project named `Codex Descript Research 2026-10-16`, then use separate baseline copies for A–E. If AVI is rejected, record the exact error and use an approved compatible transcoding route; never infer successful import from source verification.
+
+### Exact remaining action
+
+Reconnect and unlock the **Administrator Windows RDP session** on EC2AMAZ-D44MF4F and keep it connected. Recheck session state and desktop capture before using UI input. Remote Desktop Commander connectivity itself is already restored. Do not reinstall Codex/REA or disable any security controls to address the disconnected desktop. After usable UI access exists, run the existing baseline/A–E register, record exact selected scopes and prompts, export results, independently decode their timestamps/markers, and update this draft PR. The principal AI-editing, undo, caption and synchronization questions remain unresolved.

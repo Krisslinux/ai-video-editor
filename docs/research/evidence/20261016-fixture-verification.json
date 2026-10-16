@@ -1,0 +1,60 @@
+{
+  "scope": "synthetic source files only; not Descript exports",
+  "verified": true,
+  "results": [
+    {
+      "file": "clip-A.avi",
+      "frames": 360,
+      "fps": 30,
+      "audio_samples": 576000,
+      "sample_rate": 48000,
+      "duration_seconds": 12,
+      "index_entries": 720,
+      "markers": [
+        {
+          "frame": 3,
+          "audio_sample": 4800,
+          "offset_ms": 0
+        },
+        {
+          "frame": 180,
+          "audio_sample": 288000,
+          "offset_ms": 0
+        },
+        {
+          "frame": 345,
+          "audio_sample": 552000,
+          "offset_ms": 0
+        }
+      ]
+    },
+    {
+      "file": "clip-B.avi",
+      "frames": 240,
+      "fps": 30,
+      "audio_samples": 384000,
+      "sample_rate": 48000,
+      "duration_seconds": 8,
+      "index_entries": 480,
+      "markers": [
+        {
+          "frame": 3,
+          "audio_sample": 4800,
+          "offset_ms": 0
+        },
+        {
+          "frame": 120,
+          "audio_sample": 192000,
+          "offset_ms": 0
+        },
+        {
+          "frame": 225,
+          "audio_sample": 360000,
+          "offset_ms": 0
+        }
+      ]
+    }
+  ],
+  "interpretation": "0 ms source marker offsets measured from uncompressed frame positions and PCM samples. Exported codecs require independent decoding and PTS/encoder-delay handling.",
+  "uncertainty": "Source sample grid 1/48000 s; source frame grid 1/30 s. Visual onset comparison after export has at least half-frame quantization (16.667 ms)."
+}
