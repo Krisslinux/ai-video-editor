@@ -37,6 +37,10 @@ function commit(batch: EditBatch) {
   return change(applyBatch(project, batch), batch.requestId);
 }
 function payload() { return { project, projectPath, previewUrl: previewRevision === project.revision ? `editor-media://preview/current?r=${project.revision}` : undefined }; }
+function previewDimensions(canvas: Project['canvas']) {
+  const scale = Math.min(1, 720 / Math.max(canvas.width, canvas.height));
+  return { width: Math.max(2, Math.round(canvas.width * scale / 2) * 2), height: Math.max(2, Math.round(canvas.height * scale / 2) * 2) };
+}
 async function writeAtomic(path: string, value: string) {
   const temp = `${path}.${crypto.randomUUID()}.tmp`;
   await writeFile(temp, value, { mode: 0o600 }); await rename(temp, path);
@@ -203,9 +207,7 @@ handle('preview', async () => {
   const revision = project.revision, output = join(previewDir, `preview-${revision}-${crypto.randomUUID()}.mp4`);
   activeRender = new AbortController();
   try {
-    const scale = Math.min(1, 720 / Math.max(project.canvas.width, project.canvas.height));
-    const width = Math.max(256, Math.round(project.canvas.width * scale / 2) * 2), height = Math.max(256, Math.round(project.canvas.height * scale / 2) * 2);
-    await render(project, { width, height, output, signal: activeRender.signal });
+    await render(project, { ...previewDimensions(project.canvas), output, signal: activeRender.signal });
     if (project.revision !== revision) throw new Error('Project changed during preview; render again');
     previewFile = output; previewRevision = revision; return payload();
   } finally { activeRender = undefined; }
@@ -214,16 +216,15 @@ handle('review-preview', async (_event, batch: EditBatch) => {
   if (activeRender) throw new Error('A render is already running');
   const candidate = applyBatch(project, batch), revision = project.revision;
   activeRender = new AbortController();
-  const scale = Math.min(1, 720 / Math.max(project.canvas.width, project.canvas.height));
-  const width = Math.max(256, Math.round(project.canvas.width * scale / 2) * 2), height = Math.max(256, Math.round(project.canvas.height * scale / 2) * 2);
+  const size = previewDimensions(project.canvas);
   try {
     if (previewRevision !== revision) {
       const before = join(previewDir, `before-${crypto.randomUUID()}.mp4`);
-      await render(project, { width, height, output: before, signal: activeRender.signal });
+      await render(project, { ...size, output: before, signal: activeRender.signal });
       previewFile = before; previewRevision = revision;
     }
     const after = join(previewDir, `after-${crypto.randomUUID()}.mp4`);
-    await render(candidate, { width, height, output: after, signal: activeRender.signal });
+    await render(candidate, { ...size, output: after, signal: activeRender.signal });
     if (project.revision !== revision) throw new Error('Project changed during review');
     proposalFile = after; proposalId = batch.requestId;
     return { before: `editor-media://preview/current?r=${revision}`, after: `editor-media://proposal/${batch.requestId}` };

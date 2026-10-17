@@ -12,6 +12,7 @@
     "test": "node --test tests/*.test.cjs",
     "fixture": "node scripts/make-fixture.cjs",
     "verify:loop": "npm run build && npm run fixture && node scripts/verify-loop.cjs",
+    "verify:sync": "npm run build && node scripts/verify-sync.cjs",
     "pack:win": "node scripts/check-media-bundle.cjs win32 && npm run build && electron-builder --win nsis",
     "pack:linux": "node scripts/check-media-bundle.cjs linux && npm run build && electron-builder --linux AppImage"
   },

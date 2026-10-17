@@ -48,7 +48,7 @@ const byId = (project: Project, clip: Clip) => {
 export type RenderOptions = { width: number; height: number; output: string; signal?: AbortSignal };
 export async function render(project: Project, options: RenderOptions): Promise<void> {
   if (!project.video.length) throw new Error('Add a video clip before rendering');
-  if (options.width % 2 || options.height % 2 || options.width < 256 || options.height < 256) throw new Error('Invalid output dimensions');
+  if (options.width % 2 || options.height % 2 || options.width < 2 || options.height < 2) throw new Error('Invalid output dimensions');
   const length = projectDurationUs(project);
   const inputArgs: string[] = [], filters: string[] = [], videoNames: string[] = [], audioNames: string[] = [];
   let input = 0;
