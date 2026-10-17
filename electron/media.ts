@@ -21,7 +21,12 @@ export function runTool(name: 'ffmpeg' | 'ffprobe', args: string[], signal?: Abo
   });
 }
 export async function discoverMediaTools() {
-  try { await runTool('ffmpeg', ['-version']); await runTool('ffprobe', ['-version']); return { ready: true, message: 'FFmpeg and ffprobe available' }; }
+  try {
+    await runTool('ffmpeg', ['-version']); await runTool('ffprobe', ['-version']);
+    const encoders = await runTool('ffmpeg', ['-hide_banner', '-encoders']);
+    if (!/\blibx264\b/.test(encoders)) throw new Error('Selected FFmpeg build lacks the H.264 libx264 encoder required for preview/export');
+    return { ready: true, message: 'FFmpeg, ffprobe, and H.264 encoder available' };
+  }
   catch (error) { return { ready: false, message: String(error) + '. Install compatible FFmpeg/ffprobe or use a build that bundles them.' }; }
 }
 export async function probe(path: string): Promise<Omit<Asset, 'id' | 'name' | 'path'>> {
@@ -74,7 +79,7 @@ export async function render(project: Project, options: RenderOptions): Promise<
   }
   if (mixes.length > 1) filters.push(`${mixes.join('')}amix=inputs=${mixes.length}:duration=longest:normalize=0,atrim=duration=${sec(length)}[aout]`);
   else filters.push('[baseaudio]anull[aout]');
-  await runTool('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...inputArgs, '-filter_complex', filters.join(';'), '-map', '[vout]', '-map', '[aout]', '-t', sec(length), '-c:v', 'mpeg4', '-q:v', '4', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', options.output], options.signal);
+  await runTool('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...inputArgs, '-filter_complex', filters.join(';'), '-map', '[vout]', '-map', '[aout]', '-t', sec(length), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', options.output], options.signal);
 }
 export function qualityReport(project: Project): string[] {
   const issues: string[] = [];
