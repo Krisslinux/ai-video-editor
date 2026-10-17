@@ -4,7 +4,7 @@ An open-source, local-first desktop editor (early development). The current vert
 
 ## Run from source
 
-Requires Node.js 24, npm, FFmpeg and ffprobe on `PATH`. This checkout was built/tested on Linux with FFmpeg 6.1.1. Windows/macOS launch and installer are unverified.
+Requires Node.js 24, npm, FFmpeg and ffprobe on `PATH`, including libx264. This checkout was built/tested on Linux with FFmpeg 6.1.1 and launched on Windows Server 2025 with FFmpeg 9.0.2. macOS launch and installers are unverified.
 
 ```sh
 npm ci
@@ -17,7 +17,7 @@ Use **Import media**, add two videos and one audio file to the timeline, then **
 For scripted opening of a trusted project file, run `npm start -- --project=/absolute/path/project.ave.json` (quote the path when it has spaces). The same schema validation applies.
 For a non-interactive render through the same export path, pass `--export=/absolute/path/output.mp4` alongside `--project`. It finalizes only after probing the output.
 
-For checks: `npm run typecheck`, `npm test` (after `npm run build`), and `npm run verify:loop`. The last command generates local synthetic media, edits it, renders preview/export, and probes the MP4. Fixtures are ignored by Git.
+For checks: `npm run typecheck`, `npm test` (after `npm run build`), `npm run verify:loop`, and `npm run verify:sync`. The last two commands render synthetic edits and check output geometry, clip order, and flash/click timing after a trim and join. Fixtures are ignored by Git.
 
 Export uses H.264 (libx264) video and AAC audio in MP4 through the selected FFmpeg build, required for Chromium preview playback. This initial codec choice needs a GPL-compatible FFmpeg redistribution review before packaging. Supported imports are MP4, MOV, MKV, WebM, MP3, WAV, M4A, and AAC when that FFmpeg build can decode them. Corrupt/unsupported inputs report an error. Source media remains at its original path and must remain accessible.
 
