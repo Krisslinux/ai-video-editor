@@ -120,6 +120,11 @@ app.whenReady().then(async () => {
   previewDir = await mkdtemp(join(tmpdir(), 'ai-video-editor-'));
   await loadSettings();
   await syncTelemetry();
+  const initialPath = process.argv.find(arg => arg.startsWith('--project='))?.slice('--project='.length);
+  if (initialPath) {
+    try { project = validateProject(JSON.parse(await readFile(initialPath, 'utf8'))); projectPath = initialPath; }
+    catch (error) { console.error(`Could not open startup project: ${error instanceof Error ? error.message : 'invalid file'}`); }
+  }
   protocol.handle('editor-media', request => {
     const url = new URL(request.url);
     let file: string | undefined;
