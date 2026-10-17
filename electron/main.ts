@@ -108,6 +108,20 @@ async function askModel(instruction: string): Promise<EditBatch> {
     return batch;
   } finally { clearTimeout(timeout); if (activeAi === controller) activeAi = undefined; }
 }
+async function exportTo(output: string) {
+  if (activeRender) throw new Error('A render is already running');
+  if (qualityReport(project).some(issue => issue.startsWith('No video') || issue.startsWith('Missing media'))) throw new Error('Resolve missing video/media before export');
+  const temp = join(dirname(output), `.${basename(output)}.${crypto.randomUUID()}.mp4`);
+  activeRender = new AbortController(); const revision = project.revision;
+  try {
+    await render(project, { width: project.canvas.width, height: project.canvas.height, output: temp, signal: activeRender.signal });
+    const meta = JSON.parse(await runTool('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=width,height,codec_type', '-of', 'json', temp]));
+    const video = meta.streams?.find((s: { codec_type: string }) => s.codec_type === 'video');
+    if (!video || video.width !== project.canvas.width || video.height !== project.canvas.height || Math.abs(Number(meta.format.duration) * 1e6 - projectDurationUs(project)) > 150_000) throw new Error('Rendered output did not pass dimension/duration verification');
+    if (project.revision !== revision) throw new Error('Project changed while exporting; review and export again');
+    await rename(temp, output); return { output, duration: Number(meta.format.duration), width: video.width, height: video.height };
+  } finally { activeRender = undefined; await rm(temp, { force: true }); }
+}
 
 function handle(channel: string, fn: (event: IpcMainInvokeEvent, ...args: any[]) => unknown) {
   ipcMain.handle(channel, (event, ...args) => {
@@ -124,6 +138,14 @@ app.whenReady().then(async () => {
   if (initialPath) {
     try { project = validateProject(JSON.parse(await readFile(initialPath, 'utf8'))); projectPath = initialPath; }
     catch (error) { console.error(`Could not open startup project: ${error instanceof Error ? error.message : 'invalid file'}`); }
+  }
+  const exportPath = process.argv.find(arg => arg.startsWith('--export='))?.slice('--export='.length);
+  if (exportPath) {
+    try {
+      if (!projectPath) throw new Error('Supply a valid --project path with --export');
+      console.log(JSON.stringify(await exportTo(exportPath)));
+    } catch (error) { console.error(`Export failed: ${error instanceof Error ? error.message : 'unknown error'}`); process.exitCode = 1; }
+    app.quit(); return;
   }
   protocol.handle('editor-media', request => {
     const url = new URL(request.url);
@@ -208,20 +230,9 @@ handle('review-preview', async (_event, batch: EditBatch) => {
   } finally { activeRender = undefined; }
 });
 handle('export', async () => {
-  if (activeRender) throw new Error('A render is already running');
-  if (qualityReport(project).some(issue => issue.startsWith('No video') || issue.startsWith('Missing media'))) throw new Error('Resolve missing video/media before export');
   const result = await dialog.showSaveDialog(window, { defaultPath: `${project.name}.mp4`, filters: [{ name: 'MP4 video', extensions: ['mp4'] }] });
   if (result.canceled || !result.filePath) return { canceled: true };
-  const output = result.filePath, temp = join(dirname(output), `.${basename(output)}.${crypto.randomUUID()}.mp4`);
-  activeRender = new AbortController(); const revision = project.revision;
-  try {
-    await render(project, { width: project.canvas.width, height: project.canvas.height, output: temp, signal: activeRender.signal });
-    const meta = JSON.parse(await runTool('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=width,height,codec_type', '-of', 'json', temp]));
-    const video = meta.streams?.find((s: { codec_type: string }) => s.codec_type === 'video');
-    if (!video || video.width !== project.canvas.width || video.height !== project.canvas.height || Math.abs(Number(meta.format.duration) * 1e6 - projectDurationUs(project)) > 150_000) throw new Error('Rendered output did not pass dimension/duration verification');
-    if (project.revision !== revision) throw new Error('Project changed while exporting; review and export again');
-    await rename(temp, output); return { output, duration: Number(meta.format.duration), width: video.width, height: video.height };
-  } finally { activeRender = undefined; await rm(temp, { force: true }); }
+  return exportTo(result.filePath);
 });
 handle('cancel-render', () => { activeRender?.abort(); });
 handle('quality', () => qualityReport(project));

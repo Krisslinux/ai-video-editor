@@ -15,6 +15,7 @@ npm start
 Use **Import media**, add two videos and one audio file to the timeline, then **Render preview**. Choose an aspect ratio in Canvas, select clips for edits and protection, and **Export MP4**. Save/open uses `.ave.json` files. Editing and export work without an AI account. A compatible endpoint can be configured in Settings; live provider verification is pending. Remote calls require an explicit unknown-cost decision. Do not put an API key in the project file.
 
 For scripted opening of a trusted project file, run `npm start -- --project=/absolute/path/project.ave.json` (quote the path when it has spaces). The same schema validation applies.
+For a non-interactive render through the same export path, pass `--export=/absolute/path/output.mp4` alongside `--project`. It finalizes only after probing the output.
 
 For checks: `npm run typecheck`, `npm test` (after `npm run build`), and `npm run verify:loop`. The last command generates local synthetic media, edits it, renders preview/export, and probes the MP4. Fixtures are ignored by Git.
 
