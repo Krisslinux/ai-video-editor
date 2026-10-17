@@ -1,0 +1,90 @@
+import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { Asset, Clip, Project, durationUs, projectDurationUs } from '../src/shared/project';
+
+function binary(name: 'ffmpeg' | 'ffprobe') {
+  const suffix = process.platform === 'win32' ? '.exe' : '';
+  const resources = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  const bundled = resources && join(resources, 'media-tools', process.platform, name + suffix);
+  if (bundled && existsSync(bundled)) return bundled;
+  return name;
+}
+export function runTool(name: 'ffmpeg' | 'ffprobe', args: string[], signal?: AbortSignal): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(binary(name), args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], signal });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', b => { stdout += b; if (stdout.length > 16_000_000) child.kill(); });
+    child.stderr.on('data', b => { stderr += b; if (stderr.length > 2_000_000) stderr = stderr.slice(-1_000_000); });
+    child.on('error', error => reject(new Error(`${name} is unavailable or failed to start: ${error.message}`)));
+    child.on('close', code => code === 0 ? resolve(stdout) : reject(new Error(`${name} failed (${code}): ${stderr.slice(-1200)}`)));
+  });
+}
+export async function discoverMediaTools() {
+  try { await runTool('ffmpeg', ['-version']); await runTool('ffprobe', ['-version']); return { ready: true, message: 'FFmpeg and ffprobe available' }; }
+  catch (error) { return { ready: false, message: String(error) + '. Install compatible FFmpeg/ffprobe or use a build that bundles them.' }; }
+}
+export async function probe(path: string): Promise<Omit<Asset, 'id' | 'name' | 'path'>> {
+  const raw = await runTool('ffprobe', ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path]);
+  const info = JSON.parse(raw) as { format?: { duration?: string }; streams?: Array<{ codec_type: string; width?: number; height?: number; avg_frame_rate?: string; sample_rate?: string; channels?: number; duration?: string }> };
+  const video = info.streams?.find(s => s.codec_type === 'video');
+  const audio = info.streams?.find(s => s.codec_type === 'audio');
+  if (!video && !audio) throw new Error('No supported video or audio stream found');
+  const duration = Number(info.format?.duration ?? video?.duration ?? audio?.duration);
+  if (!Number.isFinite(duration) || duration <= 0 || duration > 86400) throw new Error('Unknown or unsupported media duration');
+  return { kind: video ? 'video' : 'audio', durationUs: Math.round(duration * 1_000_000), width: video?.width, height: video?.height, frameRate: video?.avg_frame_rate, sampleRate: audio?.sample_rate ? Number(audio.sample_rate) : undefined, channels: audio?.channels, hasAudio: Boolean(audio) };
+}
+const sec = (n: number) => (n / 1_000_000).toFixed(6);
+const byId = (project: Project, clip: Clip) => {
+  const asset = project.assets.find(a => a.id === clip.assetId);
+  if (!asset || !existsSync(asset.path)) throw new Error(`Missing media: ${asset?.name ?? clip.assetId}`);
+  return asset;
+};
+export type RenderOptions = { width: number; height: number; output: string; signal?: AbortSignal };
+export async function render(project: Project, options: RenderOptions): Promise<void> {
+  if (!project.video.length) throw new Error('Add a video clip before rendering');
+  if (options.width % 2 || options.height % 2 || options.width < 256 || options.height < 256) throw new Error('Invalid output dimensions');
+  const length = projectDurationUs(project);
+  const inputArgs: string[] = [], filters: string[] = [], videoNames: string[] = [], audioNames: string[] = [];
+  let input = 0;
+  for (const clip of project.video) {
+    const asset = byId(project, clip), i = input++;
+    inputArgs.push('-i', asset.path);
+    const scale = clip.fit === 'fill'
+      ? `scale=${options.width}:${options.height}:force_original_aspect_ratio=increase,crop=${options.width}:${options.height}`
+      : `scale=${options.width}:${options.height}:force_original_aspect_ratio=decrease,pad=${options.width}:${options.height}:(ow-iw)/2:(oh-ih)/2:black`;
+    const v = `v${i}`, a = `a${i}`;
+    filters.push(`[${i}:v]trim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceOutUs)},setpts=PTS-STARTPTS,fps=30,${scale},setsar=1,format=yuv420p[${v}]`);
+    if (asset.hasAudio) filters.push(`[${i}:a]atrim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceOutUs)},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${clip.gain}${clip.fadeOutUs ? `,afade=t=out:st=${sec(durationUs(clip) - clip.fadeOutUs)}:d=${sec(clip.fadeOutUs)}` : ''},apad,atrim=duration=${sec(durationUs(clip))}[${a}]`);
+    else filters.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${sec(durationUs(clip))}[${a}]`);
+    videoNames.push(`[${v}]`); audioNames.push(`[${a}]`);
+  }
+  filters.push(`${videoNames.join('')}concat=n=${videoNames.length}:v=1:a=0[vout]`);
+  filters.push(`${audioNames.join('')}concat=n=${audioNames.length}:v=0:a=1[baseaudio]`);
+  const mixes = ['[baseaudio]'];
+  for (const clip of project.audio) {
+    const effectiveDuration = Math.min(durationUs(clip), length - clip.startUs);
+    if (effectiveDuration <= 0) continue;
+    const asset = byId(project, clip), i = input++, label = `music${i}`;
+    inputArgs.push('-i', asset.path);
+    const fadeLength = Math.min(clip.fadeOutUs, effectiveDuration);
+    const fade = fadeLength ? `,afade=t=out:st=${sec(effectiveDuration - fadeLength)}:d=${sec(fadeLength)}` : '';
+    filters.push(`[${i}:a]atrim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceInUs + effectiveDuration)},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${clip.gain}${fade},adelay=${Math.round(clip.startUs / 1000)}:all=1[${label}]`);
+    mixes.push(`[${label}]`);
+  }
+  if (mixes.length > 1) filters.push(`${mixes.join('')}amix=inputs=${mixes.length}:duration=longest:normalize=0,atrim=duration=${sec(length)}[aout]`);
+  else filters.push('[baseaudio]anull[aout]');
+  await runTool('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...inputArgs, '-filter_complex', filters.join(';'), '-map', '[vout]', '-map', '[aout]', '-t', sec(length), '-c:v', 'mpeg4', '-q:v', '4', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', options.output], options.signal);
+}
+export function qualityReport(project: Project): string[] {
+  const issues: string[] = [];
+  if (!project.video.length) issues.push('No video clips');
+  for (const clip of [...project.video, ...project.audio]) {
+    const asset = project.assets.find(a => a.id === clip.assetId);
+    if (!asset || !existsSync(asset.path)) issues.push(`Missing media: ${asset?.name ?? clip.assetId}`);
+    if (clip.gain > 1) issues.push(`Potential clipping: ${asset?.name ?? clip.id} gain above 100%`);
+  }
+  for (let i = 1; i < project.video.length; i++) if (project.video[i].startUs > project.video[i - 1].startUs + durationUs(project.video[i - 1])) issues.push(`Gap before clip ${i + 1} at ${sec(project.video[i].startUs)}s`);
+  issues.push('Speech-cut, caption-bounds, and recording-sync analysis: not checked');
+  return issues;
+}

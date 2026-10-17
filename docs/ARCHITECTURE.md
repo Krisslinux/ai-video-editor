@@ -1,31 +1,20 @@
-# Architecture proposal
+# Architecture
 
-Status: proposal, not implemented.
+`src/shared/project.ts` defines versioned project/asset/clip types, integer microsecond source and timeline times, exact operation shapes, atomic batch validation, lock checks, and project validation. Video clips are contiguous in array order; imported music/audio has independent `startUs`. Rounding occurs at media import (seconds to microseconds), filter boundaries (six decimal places), and output frames (30 fps). `projectDurationUs` measures the video composition. The current native file holds absolute media references; portable collection and migrations are pending.
 
-## Components
+`electron/main.ts` owns the active project, undo/redo history, file dialogs, atomic save, encrypted connection settings, revision/idempotency checks, preview/export jobs, and constrained IPC. The renderer is sandboxed with context isolation, navigation/window creation disabled, a CSP, and a preload that exposes named methods only. Main checks sender/main frame on every IPC request. Imported assets and render outputs are served to the renderer by an ID-scoped local protocol, not arbitrary paths.
 
-1. Desktop shell and UI: media library, AI chat, preview, and editable timeline. A shared project document backs all views.
-2. Project core: versioned media references, rational timebase, tracks, clips, captions, effects, and reversible operation history. Source media remains immutable.
-3. Edit planner: accepts user intent and provider capabilities, returns a constrained, schema-validated plan. It cannot execute arbitrary file or process actions.
-4. Media engine: probes imports, creates proxies when needed, and renders preview and export from the same timeline semantics. A CPU path is required; acceleration is optional.
-5. Provider adapters: official APIs, custom endpoints/tokens, and compatible local models. Detect image input, tool use, structured output, and other capabilities per model. Credentials stay outside project files.
-6. Restricted visuals runtime: generated JavaScript receives only allowed inputs and outputs, with time, memory, filesystem, and network limits.
-7. Optional observability: report diagnostic errors only after scrubbing secrets, media, transcript text, prompts, and user identifiers.
+`electron/media.ts` probes via ffprobe and renders through FFmpeg argument arrays. The same filter graph produces preview and export at different resolutions. Video source audio follows trims/reorder; a separate audio track is mixed with its own gain, offset, and fade. Current supported effects are Fit/Fill, gain, and fade. Export writes a temporary file, probes its duration/dimensions, and renames only after success. Interrupted encoding restarts; it is not resumable. Cancellation aborts the subprocess. Processing results and job state are not yet durable across app restart.
 
-## Suggested first vertical slice
+The provider adapter currently supports explicitly configured OpenAI-compatible chat completions with JSON response, HTTPS (or local HTTP), no redirects, optional OS-encrypted token, and a 60-second timeout. It supplies scoped asset metadata and project operations, not raw media bytes. The response is parsed and dry-run through the shared validator, then staged. The review renders before/after candidates, and acceptance calls the same `edit` IPC path. No automatic provider fallback exists. App dispatch budgets, model discovery, transcription/TTS, account sign-in, and MCP transport are pending. Unknown paid cost requires an explicit user opt-in per configured remote connection.
 
-Import two short clips plus one audio track; request one bounded edit (trim and arrange); inspect the resulting timeline and preview; manually correct it; export MP4. Validate output duration, frame order, audible content, and audio/video offset with a repeatable fixture.
+| Job | Current persistence | Restart behavior |
+|---|---|---|
+| Import/probe | Asset metadata after project save | Reprobe on new import; no resume |
+| Thumbnail | Local user-data cache | Reuse when available; regeneration UI pending |
+| Preview | Temporary MP4 | Restart render |
+| Final export | Temporary output | Restart entire encode; incomplete temp removed |
+| AI request | In-memory proposal | Unknown completion after interruption; no automatic retry |
+| Transcription/generation | Not implemented | Not applicable |
 
-Represent time using integer ticks or rational frame/sample positions, not cumulative floating-point seconds. Record original media timebases and define explicit rounding at frame/sample boundaries. Keep edit operations atomic so undo and redo can replay reliably.
-
-## Stack candidates and licensing
-
-- Tauri 2 with a React/TypeScript UI is a candidate shared desktop shell; Tauri is MIT/Apache-2.0 and React is MIT. Rust native commands could isolate privileged media actions from UI content.
-- FFmpeg is a candidate CPU media engine. Its build can be LGPL or GPL depending on enabled components, so packaging, codecs, and notices need a specific review before adoption.
-- No stack is selected by this document. Validate the candidate through a small import/preview/export prototype and cross-platform build before committing to it.
-
-Sources: https://v2.tauri.app/concept/architecture/ ; https://github.com/facebook/react/blob/main/LICENSE ; https://ffmpeg.org/legal.html .
-
-## AI decision and media execution boundary
-
-The [Descript research record](research/descript.md) suggests a user-facing pattern, but Descript's internal protocol is unverified. For this project, the AI receives a scoped context manifest with stable media IDs, transcript spans, timeline revision, and optional visual descriptions. It proposes typed edit operations; the project core validates targets, timing, capabilities, and revision before committing one undoable transaction. The media engine alone performs cuts, audio mixing, captions, preview, and export from that transaction. Preserve original media and expose the plan/diff so users can revise by chat or manually. This is our design proposal, not a reconstruction of Descript internals.
+A durable job journal, input fingerprints, completed-stage checksums, provider IDs, recovery UI, and exactly-once insertion across crashes are scheduled next. Current request IDs prevent repeated application only during one process lifetime; persistence is pending.
