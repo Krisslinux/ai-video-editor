@@ -30,6 +30,7 @@ jobs:
       - run: npm test
       - run: npm run verify:loop
       - run: npm run verify:sync
+      - run: npm run verify:phone
       - name: Verify opt-in diagnostics on Windows
         if: runner.os == 'Windows'
         run: npm run verify:telemetry

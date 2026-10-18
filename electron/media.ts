@@ -31,13 +31,15 @@ export async function discoverMediaTools() {
 }
 export async function probe(path: string): Promise<Omit<Asset, 'id' | 'name' | 'path'>> {
   const raw = await runTool('ffprobe', ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path]);
-  const info = JSON.parse(raw) as { format?: { duration?: string }; streams?: Array<{ codec_type: string; width?: number; height?: number; avg_frame_rate?: string; sample_rate?: string; channels?: number; duration?: string }> };
+  const info = JSON.parse(raw) as { format?: { duration?: string }; streams?: Array<{ codec_type: string; width?: number; height?: number; avg_frame_rate?: string; sample_rate?: string; channels?: number; duration?: string; side_data_list?: Array<{ rotation?: number }> }> };
   const video = info.streams?.find(s => s.codec_type === 'video');
   const audio = info.streams?.find(s => s.codec_type === 'audio');
   if (!video && !audio) throw new Error('No supported video or audio stream found');
   const duration = Number(info.format?.duration ?? video?.duration ?? audio?.duration);
   if (!Number.isFinite(duration) || duration <= 0 || duration > 86400) throw new Error('Unknown or unsupported media duration');
-  return { kind: video ? 'video' : 'audio', durationUs: Math.round(duration * 1_000_000), width: video?.width, height: video?.height, frameRate: video?.avg_frame_rate, sampleRate: audio?.sample_rate ? Number(audio.sample_rate) : undefined, channels: audio?.channels, hasAudio: Boolean(audio) };
+  const rotation = video?.side_data_list?.find(data => Number.isFinite(data.rotation))?.rotation ?? 0;
+  const rotated = Math.abs(rotation % 180) === 90;
+  return { kind: video ? 'video' : 'audio', durationUs: Math.round(duration * 1_000_000), width: rotated ? video?.height : video?.width, height: rotated ? video?.width : video?.height, frameRate: video?.avg_frame_rate, sampleRate: audio?.sample_rate ? Number(audio.sample_rate) : undefined, channels: audio?.channels, hasAudio: Boolean(audio) };
 }
 const sec = (n: number) => (n / 1_000_000).toFixed(6);
 const byId = (project: Project, clip: Clip) => {
