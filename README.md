@@ -23,6 +23,6 @@ On Windows, `npm run verify:telemetry` launches Electron against a local receive
 
 Export uses H.264 (libx264) video and AAC audio in MP4 through the selected FFmpeg build, required for Chromium preview playback. This initial codec choice needs a GPL-compatible FFmpeg redistribution review before packaging. Supported imports are MP4, MOV, MKV, WebM, MP3, WAV, M4A, and AAC when that FFmpeg build can decode them. Corrupt/unsupported inputs report an error. Source media remains at its original path and must remain accessible.
 
-The Windows packaging command is `npm run pack:win` and requires FFmpeg/ffprobe plus license/source notices under `vendor/ffmpeg/win32/`. An unsigned local development installer was built on the connected Windows host; it has not passed a clean-machine install or distribution review. See [releases](docs/RELEASES.md).
+The Windows packaging command is `npm run pack:win` and requires FFmpeg/ffprobe plus license/source notices under `vendor/ffmpeg/win32/`. An unsigned local development installer was built and installed on the connected Windows host; the installed app opened a project and exported with bundled tools. A clean-machine install and distribution review remain pending. See [releases](docs/RELEASES.md).
 
 See [features](docs/FEATURES.md), [architecture](docs/ARCHITECTURE.md), [AI connections](docs/AI-CONNECTIONS.md), [validation](docs/VALIDATION.md), and [handoff](HANDOFF.md). MIT license for original code; bundled dependencies retain their own terms.
