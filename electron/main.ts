@@ -110,7 +110,7 @@ async function askModel(instruction: string): Promise<EditBatch> {
   checkConnection(c.endpoint);
   if (!isLocal(c.endpoint) && !c.allowUnbounded) throw new Error('Remote request cost is unknown. Allow this unbounded request in Settings before dispatch.');
   if (instruction.length < 3 || instruction.length > 3000) throw new Error('Instruction must be 3–3000 characters');
-  const revision = project.revision, requestId = crypto.randomUUID();
+  const projectId = project.id, revision = project.revision, requestId = crypto.randomUUID();
   const manifest = { revision, canvas: project.canvas, assets: project.assets.map(({ id, name, kind, durationUs }) => ({ id, name, kind, durationUs })), video: project.video, audio: project.audio };
   const controller = new AbortController(); activeAi = controller; const timeout = setTimeout(() => controller.abort(), 60000);
   try {
@@ -126,7 +126,7 @@ async function askModel(instruction: string): Promise<EditBatch> {
     const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     if (settings.connection !== c || settings.offline && !isLocal(c.endpoint)) throw new Error('AI connection changed before the proposal returned');
     const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? '') as { operations?: Operation[] };
-    const batch = { projectId: project.id, revision, requestId, operations: parsed.operations ?? [] };
+    const batch = { projectId, revision, requestId, operations: parsed.operations ?? [] };
     applyBatch(project, batch); // Dry-run the same validator used by manual edits and commit.
     return batch;
   } finally { clearTimeout(timeout); if (activeAi === controller) activeAi = undefined; }
@@ -172,7 +172,18 @@ app.whenReady().then(async () => {
       settings.offline = true;
       await syncTelemetry();
       Sentry.captureMessage('OFFLINE_SENTINEL');
-      console.log(JSON.stringify({ diagnosticFlushed: true, offlineReportingStopped: !telemetryActive }));
+      const offlineReportingStopped = !telemetryActive;
+      settings.offline = false;
+      settings.telemetry = false;
+      await syncTelemetry();
+      Sentry.captureMessage('OPT_OUT_AGAIN_SENTINEL');
+      settings.telemetry = true;
+      await syncTelemetry();
+      Sentry.captureMessage('REENABLED_SENTINEL');
+      if (!await Sentry.flush(5000)) throw new Error('Re-enabled diagnostic event did not flush');
+      settings.offline = true;
+      await syncTelemetry();
+      console.log(JSON.stringify({ diagnosticFlushed: true, offlineReportingStopped, reenabledReportingFlushed: true }));
     } catch (error) {
       console.error(`Telemetry smoke test failed: ${error instanceof Error ? error.message : 'unknown error'}`);
       process.exitCode = 1;

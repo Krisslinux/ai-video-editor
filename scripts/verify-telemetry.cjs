@@ -34,12 +34,14 @@ const server = http.createServer((request, response) => {
   const [exitCode, signal] = await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', (code, reason) => resolve([code, reason])); });
   clearTimeout(timer);
   assert.equal(exitCode, 0, `Electron diagnostic failed (${signal ?? 'exit'}): ${[...errors, ...output].join('').slice(-1000)}`);
-  assert.match(output.join(''), /"diagnosticFlushed":true,"offlineReportingStopped":true/);
-  assert.equal(received.length, 1, `Expected one Sentry envelope, received ${received.length}`);
-  assert.match(received[0].path, /^\/api\/1\/envelope\//);
-  assert.match(received[0].body, /Editor diagnostic/);
-  for (const secret of ['PRIVATE_MEDIA_PATH_SENTINEL', 'PRIVATE_TOKEN_SENTINEL', 'PRIVATE_USER_SENTINEL', 'OPT_OUT_SENTINEL', 'OFFLINE_SENTINEL']) {
-    assert.ok(!received[0].body.includes(secret), `Diagnostic envelope included ${secret}`);
+  assert.match(output.join(''), /"diagnosticFlushed":true,"offlineReportingStopped":true,"reenabledReportingFlushed":true/);
+  assert.equal(received.length, 2, `Expected two Sentry envelopes, received ${received.length}`);
+  for (const envelope of received) {
+    assert.match(envelope.path, /^\/api\/1\/envelope\//);
+    assert.match(envelope.body, /Editor diagnostic/);
+    for (const secret of ['PRIVATE_MEDIA_PATH_SENTINEL', 'PRIVATE_TOKEN_SENTINEL', 'PRIVATE_USER_SENTINEL', 'OPT_OUT_SENTINEL', 'OPT_OUT_AGAIN_SENTINEL', 'OFFLINE_SENTINEL', 'REENABLED_SENTINEL']) {
+      assert.ok(!envelope.body.includes(secret), `Diagnostic envelope included ${secret}`);
+    }
   }
-  console.log(JSON.stringify({ envelopes: received.length, redacted: true, optOutAndOfflineBlocked: true }));
+  console.log(JSON.stringify({ envelopes: received.length, redacted: true, optOutAndOfflineBlocked: true, reenabledReporting: true }));
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => server.close());

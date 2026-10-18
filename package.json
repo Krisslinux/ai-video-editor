@@ -14,6 +14,7 @@
     "verify:loop": "npm run build && npm run fixture && node scripts/verify-loop.cjs",
     "verify:sync": "npm run build && node scripts/verify-sync.cjs",
     "verify:phone": "npm run build && node scripts/verify-phone.cjs",
+    "verify:ai": "npm run build && node scripts/verify-ai-loop.cjs",
     "verify:source-protection": "npm run build && node scripts/verify-source-protection.cjs",
     "verify:telemetry": "npm run build && node scripts/verify-telemetry.cjs",
     "pack:win": "node scripts/check-media-bundle.cjs win32 && npm run build && electron-builder --win nsis",
