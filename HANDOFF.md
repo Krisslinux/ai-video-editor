@@ -1,24 +1,15 @@
 # Handoff
 
-Updated: 2026-10-15 UTC
+Updated 2026-10-18 UTC. Branch: `build/editor-from-scratch`, based on `setup/development-foundation` (main still has only the initial repository). Draft PR #3 tracks this branch; GitHub issues #4–#6 track installer, timing/real footage, and AI connections. The older Descript research branch and PR remain untouched.
 
-## Working state
+## Working code
 
-Repository: https://github.com/Krisslinux/ai-video-editor (public). Active remote branch: setup/development-foundation. Base: main at f033cb71ad3b4539187ec79ed146bf764a03b4fa. Last relevant code commit: none; this branch contains documentation and configuration only. Inspect [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1) for the current branch head. This session has no verified local clone; local worktree status could not be checked.
+Electron 44 desktop source; React timeline/library/preview/AI/Canvas/settings; typed schema v1 and shared command validator; initial content/position/gain/duration locks; in-memory undo/redo; atomic project save/open; FFmpeg import/probe/thumbnail/preview/export and pre-export basic report. Preview/export share a filter graph; source audio and separate music mix, including a composition-end music fade. Compatible endpoint AI proposals are dry-run validated and staged with before/after renders. Main-process offline gate and optional OS-encrypted tokens are present. Sentry SDK initializes before Electron ready and remains opt-in; a Windows loopback smoke test verifies redaction and offline/opt-out behavior.
 
-Completed: inspected the initial repo and confirmed its MIT LICENSE with the owner; added README, AGENTS.md, PROJECT.md, ARCHITECTURE.md, TASKS.md, Descript research log, placeholder provider config, local-data ignores, line-ending policy, and CodeRabbit draft-review config. The [private Notion navigation page](https://app.notion.com/p/3fa677d871be81f78d69e1cb4a9acca1) links to the Git plan, tasks, handoff, and draft PR. CodeRabbit completed a review of PR #1 and reported two documentation findings; this branch addresses them. Descript public-source findings and a disposable-project REA test protocol are recorded in docs/research/descript.md.
+## Checks
 
-Unfinished: dependency license review, a runnable desktop scaffold, CPU media proof, Windows/macOS/Linux checks, Sentry setup, REA diagnostics, and three isolated Descript test edits remain. Public Descript documentation is summarized with a runnable test protocol; no live app evidence exists. No application code, build command, or CI workflow exists yet.
+Linux Node 24/FFmpeg 6.1.1: typecheck, build, three core tests, and synthetic preview/export pass. Source clips 2s red + 3s blue, separate 5s audio, 1s trim → expected 4.00s; preview/export 4.00s, 1280×720, video/audio streams and red→blue order. Portrait Fill rendered 360×640 at 4.00s. A second trimmed two-clip fixture measured four flash/click pairs within 4.75–5.25 ms for both separate and source-embedded audio on Linux and Windows. See docs/VALIDATION.md. The Windows Electron window loaded a saved project, rendered Chromium-playable H.264 preview, and completed UI trim/undo/redo/save/reopen; the app export path finalized a 3.00s MP4. Windows loopback Sentry envelope/redaction/opt-out/offline checks passed. Native file dialogs, installer, real footage, live AI, and external Sentry delivery remain unverified. CodeRabbit CLI 0.9.0 crashes in bundled Bun 1.4.2; its PR full review must run on a stable head.
 
-## Checks and limitations
+## Blockers and exact next action
 
-- GitHub App installation and branch writes: verified. Compared setup branch with main: 11 intended changed files, zero commits behind. Draft PR #1 is open and mergeable.
-- CodeRabbit bot loaded .coderabbit.yaml, posted a PR summary, and completed a review with two findings. The review's follow-up on these fixes may still be pending.
-- Notion page: fetched and confirmed links to the Git plan, tasks, handoff, and PR.
-- Sentry connection: organization kriss-linux responds; it has zero projects. REA MCP tools are not exposed.
-- The provided working directory is C:\Windows\system32, but local command and computer-use runtimes fail before startup with `helper_unknown_error: setup refresh had errors`. This environment has not been confirmed as the AWS RDP host. No REA doctor, build, rendering, or platform check ran.
-- Descript research now maps five workflow questions to vendor evidence and unknowns, and specifies before/after tests for pauses, captions, and clip trim. No application version, platform, disposable project, REA Evidence ID, or measured export has been inspected. The local REA skill file was also inaccessible because the command runtime failed; the public upstream skill was consulted.
-
-## Exact next action
-
-From a functioning checkout of setup/development-foundation, run `rea doctor --client codex --json`, record REA readiness, then execute the three isolated Descript tests in docs/research/descript.md using synthetic media. Save sanitized REA Evidence IDs and measured before/after results in that file; keep PR #1 in draft.
+Trigger and inspect CodeRabbit full review after the Sentry fix is published. Then add a VFR/rotation fixture and exercise native import/export dialogs with supplied real phone footage and separate microphone audio on Windows. Supply a reviewed Windows FFmpeg/ffprobe redistributable with license/source notices in the ignored vendor directory, then build and clean-install NSIS. Configure a real AI endpoint and Sentry project DSN locally without sharing credentials in chat; verify live edit and external diagnostic delivery. None of these external prerequisites should block core work.

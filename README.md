@@ -1,15 +1,28 @@
 # AI Video Editor
 
-An open-source desktop video creation and editing project for Windows, macOS, and Linux. The intended workflow combines an AI edit plan with explicit timeline operations, preview, manual correction, and export.
+An open-source, local-first desktop editor (early development). The current vertical slice imports video and separate audio, arranges clips on tracks, trims/splits/reorders video, adjusts gain/fades/framing, renders an accurate preview, saves/reopens projects, undoes/redoes edits, proposes validated edits through a configured OpenAI-compatible chat-completions endpoint, reviews a proposed batch, and exports MP4. It is not yet a full creator suite or a verified installer.
 
-This repository is at the foundation stage. There is no runnable application or verified build command yet. See [project scope](docs/PROJECT.md), [proposed architecture](docs/ARCHITECTURE.md), [tasks](docs/TASKS.md), and [current handoff](HANDOFF.md). Repository name is provisional; the product name is undecided.
+## Run from source
 
-## Development
+Requires Node.js 24, npm, FFmpeg and ffprobe on `PATH`, including libx264. This checkout was built/tested on Linux with FFmpeg 6.1.1 and launched on Windows Server 2025 with FFmpeg 9.0.2. macOS launch and installers are unverified.
 
-Clone this repository and read [AGENTS.md](AGENTS.md) before editing. Start each session by checking the branch, Git status, recent commits, and the four shared state files named there. Work on a dedicated branch and open a draft pull request. Keep credentials, private media, prompt content, and REA target files outside Git.
+```sh
+npm ci
+npm run build
+npm start
+```
 
-The initial checkout contains planning records only. Install and test commands will be added with the first runnable scaffold; none are claimed as verified today. Windows, macOS, and Linux build checks are pending until those commands exist.
+Use **Import media**, add two videos and one audio file to the timeline, then **Render preview**. Choose an aspect ratio in Canvas, select clips for edits and protection, and **Export MP4**. Save/open uses `.ave.json` files. Editing and export work without an AI account. A compatible endpoint can be configured in Settings; live provider verification is pending. Remote calls require an explicit unknown-cost decision. Do not put an API key in the project file.
 
-## License
+For scripted opening of a trusted project file, run `npm start -- --project=/absolute/path/project.ave.json` (quote the path when it has spaces). The same schema validation applies.
+For a non-interactive render through the same export path, pass `--export=/absolute/path/output.mp4` alongside `--project`. It finalizes only after probing the output.
 
-The repository was created with an [MIT license](LICENSE). The owner confirmed MIT for this project on 2026-10-15. Check each media and model dependency's distribution terms before adoption.
+For checks: `npm run typecheck`, `npm test` (after `npm run build`), `npm run verify:loop`, and `npm run verify:sync`. The last two commands render synthetic edits and check output geometry, clip order, and separate-track/source-audio flash/click timing after a trim and join. Fixtures are ignored by Git.
+
+On Windows, `npm run verify:telemetry` launches Electron against a local receiver and verifies that opt-in diagnostics are redacted and offline/opt-out states send no event. It uses no external Sentry project.
+
+Export uses H.264 (libx264) video and AAC audio in MP4 through the selected FFmpeg build, required for Chromium preview playback. This initial codec choice needs a GPL-compatible FFmpeg redistribution review before packaging. Supported imports are MP4, MOV, MKV, WebM, MP3, WAV, M4A, and AAC when that FFmpeg build can decode them. Corrupt/unsupported inputs report an error. Source media remains at its original path and must remain accessible.
+
+The Windows packaging command is `npm run pack:win`, but it deliberately requires a reviewed redistributable FFmpeg/ffprobe bundle under `vendor/ffmpeg/win32/` before it runs. See [releases](docs/RELEASES.md). No installer has passed clean-machine testing yet.
+
+See [features](docs/FEATURES.md), [architecture](docs/ARCHITECTURE.md), [AI connections](docs/AI-CONNECTIONS.md), [validation](docs/VALIDATION.md), and [handoff](HANDOFF.md). MIT license for original code; bundled dependencies retain their own terms.
