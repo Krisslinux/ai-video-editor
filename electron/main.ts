@@ -70,6 +70,7 @@ async function syncTelemetry() {
   Sentry.init({
     dsn: process.env.AI_VIDEO_EDITOR_SENTRY_DSN,
     defaultIntegrations: false,
+    sendClientReports: false,
     tracesSampleRate: 0,
     beforeSend(event) {
       return { type: event.type, event_id: event.event_id, timestamp: event.timestamp, level: event.level, message: 'Editor diagnostic', tags: { category: 'opt-in-diagnostic' } };
@@ -135,6 +136,26 @@ function handle(channel: string, fn: (event: IpcMainInvokeEvent, ...args: any[])
 }
 
 app.whenReady().then(async () => {
+  if (process.argv.includes('--verify-telemetry')) {
+    try {
+      const dsn = process.env.AI_VIDEO_EDITOR_SENTRY_DSN;
+      if (!dsn || new URL(dsn).hostname !== '127.0.0.1') throw new Error('Telemetry smoke test requires a loopback DSN');
+      Sentry.captureMessage('OPT_OUT_SENTINEL');
+      settings.telemetry = true;
+      await syncTelemetry();
+      Sentry.setUser({ email: 'PRIVATE_USER_SENTINEL@example.test' });
+      Sentry.captureMessage('PRIVATE_MEDIA_PATH_SENTINEL PRIVATE_TOKEN_SENTINEL');
+      if (!await Sentry.flush(5000)) throw new Error('Diagnostic event did not flush');
+      settings.offline = true;
+      await syncTelemetry();
+      Sentry.captureMessage('OFFLINE_SENTINEL');
+      console.log(JSON.stringify({ diagnosticFlushed: true, offlineReportingStopped: !telemetryActive }));
+    } catch (error) {
+      console.error(`Telemetry smoke test failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+      process.exitCode = 1;
+    }
+    app.quit(); return;
+  }
   previewDir = await mkdtemp(join(tmpdir(), 'ai-video-editor-'));
   await loadSettings();
   await syncTelemetry();
