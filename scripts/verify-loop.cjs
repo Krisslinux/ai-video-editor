@@ -48,5 +48,14 @@ const id = () => crypto.randomUUID();
   const first = frame(.5), last = frame(2.5);
   assert.ok(first[0] > first[2] * 2, `first clip is not red: ${first}`);
   assert.ok(last[2] > last[0] * 2, `second clip is not blue: ${last}`);
-  console.log(JSON.stringify({ expectedDuration: 4, outputDuration: duration, previewDuration: Number(prev.format.duration), dimensions: '1280x720', portraitDimensions: '360x640', firstClip: 'red', secondClip: 'blue', audioStream: true, coverArtMp3Kind: coverAsset.kind, output: out }, null, 2));
+  const repeated = applyBatch(p, { projectId: p.id, revision: p.revision, requestId: id(), operations: [
+    { type: 'addClip', assetId: p.assets[0].id, track: 'video' },
+    { type: 'addClip', assetId: p.assets[2].id, track: 'audio', startUs: 1_000_000 }
+  ] });
+  const repeatedOut = join(dir, 'repeated.mp4');
+  await render(repeated, { width: 640, height: 360, output: repeatedOut });
+  const repeatedInfo = JSON.parse(await runTool('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type', '-of', 'json', repeatedOut]));
+  assert.ok(Math.abs(Number(repeatedInfo.format.duration) - 6) <= 1 / 30);
+  assert.ok(repeatedInfo.streams.some(s => s.codec_type === 'audio'));
+  console.log(JSON.stringify({ expectedDuration: 4, outputDuration: duration, previewDuration: Number(prev.format.duration), dimensions: '1280x720', portraitDimensions: '360x640', firstClip: 'red', secondClip: 'blue', audioStream: true, coverArtMp3Kind: coverAsset.kind, repeatedSourceDuration: Number(repeatedInfo.format.duration), output: out }, null, 2));
 })().catch(e => { console.error(e); process.exitCode = 1; });

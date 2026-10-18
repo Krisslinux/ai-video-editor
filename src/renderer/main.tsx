@@ -41,6 +41,7 @@ function App() {
   const pendingDraft = useRef<string | undefined>(undefined);
   const [width, setWidth] = useState(1280), [height, setHeight] = useState(720);
   const project = state.project;
+  useEffect(() => { setWidth(project.canvas.width); setHeight(project.canvas.height); }, [project.canvas.width, project.canvas.height]);
   const clip = [...project.video, ...project.audio].find(c => c.id === selected);
   const asset = clip && project.assets.find(a => a.id === clip.assetId);
   const length = projectDurationUs(project);
@@ -50,13 +51,13 @@ function App() {
     pendingDraft.current = undefined;
   }, [clip?.id, clip?.gain, clip?.fadeOutUs]);
   useEffect(() => {
-    void window.editor.state().then(s => { setState(s); setWidth(s.project.canvas.width); setHeight(s.project.canvas.height); });
+    void window.editor.state().then(setState);
     void window.editor.settings().then(s => { setSettings(s); if (s.connection) { setEndpoint(s.connection.endpoint); setModel(s.connection.model); setAllowUnbounded(s.connection.allowUnbounded); } });
     void window.editor.health().then(h => { if (!h.ready) setStatus(h.message); });
   }, []);
-  async function execute<T>(label: string, fn: () => Promise<T>, after?: (result: T) => void) {
+  async function execute<T>(label: string, fn: () => Promise<T>, after?: (result: T) => void | string) {
     setBusy(true); setStatus(`${label}…`);
-    try { const result = await fn(); after?.(result); setStatus(`${label} complete`); return result; }
+    try { const result = await fn(); const message = after?.(result); setStatus(message ?? `${label} complete`); return result; }
     catch (error) { setStatus(`${label}: ${error instanceof Error ? error.message : String(error)}`); }
     finally { setBusy(false); }
   }
@@ -112,7 +113,7 @@ function App() {
           <div className="monitor" style={{ aspectRatio: `${project.canvas.width}/${project.canvas.height}` }}>
             {(comparison ? (showAfter ? comparison.after : comparison.before) : state.previewUrl) ? <video key={comparison ? (showAfter ? comparison.after : comparison.before) : state.previewUrl} controls src={comparison ? (showAfter ? comparison.after : comparison.before) : state.previewUrl} aria-label={comparison ? (showAfter ? 'Proposed edit preview' : 'Original edit preview') : 'Rendered timeline preview'} /> : <div className="monitor-placeholder"><strong>Canvas preview</strong><span>Render preview to see the exact timeline with audio.</span></div>}
           </div>
-          <div className="transport"><span>{seconds(length)}s · 30 fps</span><div className="inline"><button disabled={!busy} onClick={() => void window.editor.cancelRender()}>Cancel render</button><button disabled={busy || !project.video.length} onClick={() => void execute('Pre-export check', window.editor.quality, setReport)}>Check quality</button><button className="accent" disabled={busy || !project.video.length} onClick={() => void execute('Export', window.editor.exportVideo, r => { if (r.output) setStatus(`Exported ${r.output} — ${r.duration}s, ${r.width} × ${r.height}`); })}>Export MP4</button></div></div>
+          <div className="transport"><span>{seconds(length)}s · 30 fps</span><div className="inline"><button disabled={!busy} onClick={() => void window.editor.cancelRender()}>Cancel render</button><button disabled={busy || !project.video.length} onClick={() => void execute('Pre-export check', window.editor.quality, setReport)}>Check quality</button><button className="accent" disabled={busy || !project.video.length} onClick={() => void execute('Export', window.editor.exportVideo, r => r.output ? `Exported ${r.output} — ${r.duration}s, ${r.width} × ${r.height}` : 'Export canceled')}>Export MP4</button></div></div>
           {report && <div className="report" role="status"><strong>Pre-export report</strong>{report.map((r, i) => <div key={i}>{r}</div>)}</div>}
         </div>
         <div className="timeline panel">

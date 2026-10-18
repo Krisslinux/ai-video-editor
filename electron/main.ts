@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, safeStorage, IpcMainInvokeEvent } from 'electron';
-import { readFile, rename, writeFile, mkdtemp, rm, mkdir } from 'node:fs/promises';
+import { readFile, realpath, rename, writeFile, mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 import { Asset, EditBatch, Operation, Project, applyBatch, newProject, projectDurationUs, setUserLock, validateProject } from '../src/shared/project';
@@ -16,8 +16,10 @@ let undoStack: Project[] = [], redoStack: Project[] = [];
 let previewFile: string | undefined, previewRevision = -1;
 let proposalFile: string | undefined, proposalId: string | undefined;
 let activeRender: AbortController | undefined;
+let activeRenderPromise: Promise<unknown> | undefined;
 let activeAi: AbortController | undefined;
 let previewDir: string;
+let shuttingDown = false;
 const processed = new Set<string>();
 type Connection = { endpoint: string; model: string; token?: string; allowUnbounded: boolean };
 type Settings = { offline: boolean; telemetry: boolean; connection?: Connection };
@@ -52,9 +54,28 @@ if (process.env.AI_VIDEO_EDITOR_SENTRY_DSN) {
 function change(next: Project, requestId?: string) {
   next.revision = project.revision + 1;
   undoStack.push(project); if (undoStack.length > 100) undoStack.shift();
-  redoStack = []; project = next; previewRevision = -1; proposalFile = undefined; proposalId = undefined;
+  redoStack = []; project = next; invalidatePreview();
   if (requestId) processed.add(requestId);
   return project;
+}
+function removePreviewFiles(...files: Array<string | undefined>) {
+  for (const file of new Set(files)) if (file) void rm(file, { force: true }).catch(() => undefined);
+}
+function invalidatePreview() {
+  const oldPreview = previewFile, oldProposal = proposalFile;
+  previewFile = undefined; previewRevision = -1; proposalFile = undefined; proposalId = undefined;
+  removePreviewFiles(oldPreview, oldProposal);
+}
+function withRender<T>(fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  if (activeRender) throw new Error('A render is already running');
+  const controller = new AbortController();
+  activeRender = controller;
+  const job = fn(controller.signal);
+  activeRenderPromise = job;
+  return job.finally(() => {
+    if (activeRender === controller) activeRender = undefined;
+    if (activeRenderPromise === job) activeRenderPromise = undefined;
+  });
 }
 function commit(batch: EditBatch) {
   if (processed.has(batch.requestId)) return project;
@@ -68,6 +89,13 @@ function previewDimensions(canvas: Project['canvas']) {
 async function writeAtomic(path: string, value: string) {
   const temp = `${path}.${crypto.randomUUID()}.tmp`;
   await writeFile(temp, value, { mode: 0o600 }); await rename(temp, path);
+}
+async function canonicalPath(path: string) {
+  try { return await realpath(path); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    return join(await realpath(dirname(path)), basename(path));
+  }
 }
 async function saveSettings() {
   const connection = settings.connection;
@@ -134,21 +162,25 @@ async function askModel(instruction: string): Promise<EditBatch> {
 async function exportTo(output: string) {
   if (activeRender) throw new Error('A render is already running');
   if (qualityReport(project).some(issue => issue.startsWith('No video') || issue.startsWith('Missing media'))) throw new Error('Resolve missing video/media before export');
-  const target = resolve(output);
-  if (project.assets.some(asset => {
-    const source = resolve(asset.path);
-    return process.platform === 'win32' ? source.toLowerCase() === target.toLowerCase() : source === target;
-  })) throw new Error('Choose an export path that is not an imported source file');
+  const target = await canonicalPath(output);
+  for (const asset of project.assets) {
+    const source = await canonicalPath(asset.path);
+    if (process.platform === 'win32' ? source.toLowerCase() === target.toLowerCase() : source === target)
+      throw new Error('Choose an export path that is not an imported source file');
+  }
   const temp = join(dirname(output), `.${basename(output)}.${crypto.randomUUID()}.mp4`);
-  activeRender = new AbortController(); const revision = project.revision;
-  try {
-    await render(project, { width: project.canvas.width, height: project.canvas.height, output: temp, signal: activeRender.signal });
-    const meta = JSON.parse(await runTool('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=width,height,codec_type', '-of', 'json', temp]));
-    const video = meta.streams?.find((s: { codec_type: string }) => s.codec_type === 'video');
-    if (!video || video.width !== project.canvas.width || video.height !== project.canvas.height || Math.abs(Number(meta.format.duration) * 1e6 - projectDurationUs(project)) > 150_000) throw new Error('Rendered output did not pass dimension/duration verification');
-    if (project.revision !== revision) throw new Error('Project changed while exporting; review and export again');
-    await rename(temp, output); return { output, duration: Number(meta.format.duration), width: video.width, height: video.height };
-  } finally { activeRender = undefined; await rm(temp, { force: true }); }
+  const revision = project.revision;
+  return withRender(async signal => {
+    try {
+      await render(project, { width: project.canvas.width, height: project.canvas.height, output: temp, signal });
+      const meta = JSON.parse(await runTool('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=width,height,codec_type', '-of', 'json', temp]));
+      const video = meta.streams?.find((s: { codec_type: string }) => s.codec_type === 'video');
+      if (!video || video.width !== project.canvas.width || video.height !== project.canvas.height || Math.abs(Number(meta.format.duration) * 1e6 - projectDurationUs(project)) > 150_000) throw new Error('Rendered output did not pass dimension/duration verification');
+      if (project.revision !== revision) throw new Error('Project changed while exporting; review and export again');
+      await rename(temp, output);
+      return { output, duration: Number(meta.format.duration), width: video.width, height: video.height };
+    } finally { await rm(temp, { force: true }); }
+  });
 }
 
 function handle(channel: string, fn: (event: IpcMainInvokeEvent, ...args: any[]) => unknown) {
@@ -205,6 +237,7 @@ app.whenReady().then(async () => {
       if (!projectPath) throw new Error('Supply a valid --project path with --export');
       console.log(JSON.stringify(await exportTo(exportPath)));
     } catch (error) { console.error(`Export failed: ${error instanceof Error ? error.message : 'unknown error'}`); exitCode = 1; }
+    await rm(previewDir, { recursive: true, force: true }).catch(() => undefined);
     app.exit(exitCode); return;
   }
   protocol.handle('editor-media', request => {
@@ -222,11 +255,21 @@ app.whenReady().then(async () => {
   await window.loadFile(join(__dirname, '../../dist/index.html'));
 });
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => { activeRender?.abort(); activeAi?.abort(); if (previewDir) void rm(previewDir, { recursive: true, force: true }); });
+app.on('before-quit', event => {
+  if (shuttingDown) return;
+  event.preventDefault();
+  shuttingDown = true;
+  activeRender?.abort(); activeAi?.abort();
+  void (async () => {
+    await activeRenderPromise?.catch(() => undefined);
+    if (previewDir) await rm(previewDir, { recursive: true, force: true }).catch(error => console.error('Could not remove preview cache:', error));
+    app.exit();
+  })();
+});
 
 handle('state', () => payload());
 handle('health', () => discoverMediaTools());
-handle('new-project', () => { projectPath = undefined; undoStack = []; redoStack = []; project = newProject(); previewRevision = -1; processed.clear(); return payload(); });
+handle('new-project', () => { projectPath = undefined; undoStack = []; redoStack = []; project = newProject(); invalidatePreview(); processed.clear(); return payload(); });
 handle('import-media', async () => {
   const result = await dialog.showOpenDialog(window, { properties: ['openFile', 'multiSelections'], filters: [{ name: 'Media', extensions: ['mp4', 'mov', 'mkv', 'webm', 'mp3', 'wav', 'm4a', 'aac'] }] });
   if (result.canceled) return payload();
@@ -246,8 +289,8 @@ handle('import-media', async () => {
 });
 handle('edit', (_event, batch: EditBatch) => { commit(batch); return payload(); });
 handle('lock', (_event, id: string, property: 'content' | 'timing' | 'position' | 'gain', value: boolean) => { change(setUserLock(project, id, property, value)); return payload(); });
-handle('undo', () => { const p = undoStack.pop(); if (p) { redoStack.push(project); p.revision = project.revision + 1; project = p; previewRevision = -1; } return payload(); });
-handle('redo', () => { const p = redoStack.pop(); if (p) { undoStack.push(project); p.revision = project.revision + 1; project = p; previewRevision = -1; } return payload(); });
+handle('undo', () => { const p = undoStack.pop(); if (p) { redoStack.push(project); p.revision = project.revision + 1; project = p; invalidatePreview(); } return payload(); });
+handle('redo', () => { const p = redoStack.pop(); if (p) { undoStack.push(project); p.revision = project.revision + 1; project = p; invalidatePreview(); } return payload(); });
 handle('save', async (_event, as: boolean) => {
   if (!projectPath || as) { const result = await dialog.showSaveDialog(window, { defaultPath: `${project.name}.ave.json`, filters: [{ name: 'Editor project', extensions: ['json'] }] }); if (result.canceled || !result.filePath) return payload(); projectPath = result.filePath; }
   await writeAtomic(projectPath, JSON.stringify(project, null, 2)); return payload();
@@ -256,35 +299,44 @@ handle('open', async () => {
   const result = await dialog.showOpenDialog(window, { properties: ['openFile'], filters: [{ name: 'Editor project', extensions: ['json'] }] });
   if (result.canceled) return payload();
   const loaded = validateProject(JSON.parse(await readFile(result.filePaths[0], 'utf8')));
-  project = loaded; projectPath = result.filePaths[0]; undoStack = []; redoStack = []; previewRevision = -1; processed.clear(); return payload();
+  project = loaded; projectPath = result.filePaths[0]; undoStack = []; redoStack = []; invalidatePreview(); processed.clear(); return payload();
 });
 handle('preview', async () => {
-  if (activeRender) throw new Error('A render is already running');
   const revision = project.revision, output = join(previewDir, `preview-${revision}-${crypto.randomUUID()}.mp4`);
-  activeRender = new AbortController();
-  try {
-    await render(project, { ...previewDimensions(project.canvas), output, signal: activeRender.signal });
-    if (project.revision !== revision) throw new Error('Project changed during preview; render again');
-    previewFile = output; previewRevision = revision; return payload();
-  } finally { activeRender = undefined; }
+  return withRender(async signal => {
+    try {
+      await render(project, { ...previewDimensions(project.canvas), output, signal });
+      if (project.revision !== revision) throw new Error('Project changed during preview; render again');
+      const old = previewFile;
+      previewFile = output; previewRevision = revision;
+      removePreviewFiles(old);
+      return payload();
+    } catch (error) { await rm(output, { force: true }); throw error; }
+  });
 });
 handle('review-preview', async (_event, batch: EditBatch) => {
-  if (activeRender) throw new Error('A render is already running');
   const candidate = applyBatch(project, batch), revision = project.revision;
-  activeRender = new AbortController();
   const size = previewDimensions(project.canvas);
-  try {
-    if (previewRevision !== revision) {
-      const before = join(previewDir, `before-${crypto.randomUUID()}.mp4`);
-      await render(project, { ...size, output: before, signal: activeRender.signal });
-      previewFile = before; previewRevision = revision;
-    }
+  return withRender(async signal => {
+    let before: string | undefined;
     const after = join(previewDir, `after-${crypto.randomUUID()}.mp4`);
-    await render(candidate, { ...size, output: after, signal: activeRender.signal });
-    if (project.revision !== revision) throw new Error('Project changed during review');
-    proposalFile = after; proposalId = batch.requestId;
-    return { before: `editor-media://preview/current?r=${revision}`, after: `editor-media://proposal/${batch.requestId}` };
-  } finally { activeRender = undefined; }
+    try {
+      if (previewRevision !== revision) {
+        before = join(previewDir, `before-${crypto.randomUUID()}.mp4`);
+        await render(project, { ...size, output: before, signal });
+      }
+      await render(candidate, { ...size, output: after, signal });
+      if (project.revision !== revision) throw new Error('Project changed during review');
+      const oldPreview = previewFile, oldProposal = proposalFile;
+      if (before) { previewFile = before; previewRevision = revision; }
+      proposalFile = after; proposalId = batch.requestId;
+      removePreviewFiles(before ? oldPreview : undefined, oldProposal);
+      return { before: `editor-media://preview/current?r=${revision}`, after: `editor-media://proposal/${batch.requestId}` };
+    } catch (error) {
+      await Promise.all([before && rm(before, { force: true }), rm(after, { force: true })]);
+      throw error;
+    }
+  });
 });
 handle('export', async () => {
   const result = await dialog.showSaveDialog(window, { defaultPath: `${project.name}.mp4`, filters: [{ name: 'MP4 video', extensions: ['mp4'] }] });

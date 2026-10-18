@@ -77,7 +77,7 @@ export function applyBatch(project: Project, batch: EditBatch): Project {
       case 'splitClip': {
         const { track, clip, index } = findClip(next, op.clipId);
         assert(validTime(op.atUs) && op.atUs > 0 && op.atUs < durationUs(clip), 'Split must be inside the clip');
-        const right = { ...structuredClone(clip), id: crypto.randomUUID(), sourceInUs: clip.sourceInUs + op.atUs, startUs: clip.startUs + op.atUs, fadeOutUs: clip.fadeOutUs };
+        const right = { ...structuredClone(clip), id: crypto.randomUUID(), sourceInUs: clip.sourceInUs + op.atUs, startUs: clip.startUs + op.atUs, fadeOutUs: Math.min(clip.fadeOutUs, durationUs(clip) - op.atUs) };
         clip.sourceOutUs = right.sourceInUs; clip.fadeOutUs = 0;
         next[track].splice(index + 1, 0, right);
         break;

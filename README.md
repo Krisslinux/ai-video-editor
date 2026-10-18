@@ -21,6 +21,7 @@ For checks: `npm run typecheck`, `npm test` (after `npm run build`), `npm run ve
 
 On Windows, `npm run verify:telemetry` launches Electron against a local receiver and verifies that opt-in diagnostics are redacted and offline/opt-out states send no event. `npm run verify:source-protection` checks that a command line export cannot overwrite an imported source, even with a differently cased path. These checks use no external Sentry project or personal media.
 After `npm run verify:loop` creates a saved synthetic project, `npm run verify:ai` exercises a loopback OpenAI-compatible proposal, validation, before/after preview, and accept flow without an external model or token.
+`npm run verify:large` generates the synthetic fixture and renders 120 repeated clips from one source to check graph-file and input reuse behavior.
 
 Export uses H.264 (libx264) video and AAC audio in MP4 through the selected FFmpeg build, required for Chromium preview playback. This initial codec choice needs a GPL-compatible FFmpeg redistribution review before packaging. Supported imports are MP4, MOV, MKV, WebM, MP3, WAV, M4A, and AAC when that FFmpeg build can decode them. Corrupt/unsupported inputs report an error. Source media remains at its original path and must remain accessible.
 

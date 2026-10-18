@@ -23,6 +23,16 @@ test('saved project preserves exact timing and locks', () => {
   p = setUserLock(p, p.video[0].id, 'content', true);
   assert.deepEqual(validateProject(JSON.parse(JSON.stringify(p))), p);
 });
+test('splitting a faded clip caps the right fade to its duration', () => {
+  let p = sample();
+  p = applyBatch(p, { projectId: p.id, revision: p.revision, requestId: id(), operations: [{ type: 'addClip', assetId: 'a', track: 'video' }] });
+  p = applyBatch(p, { projectId: p.id, revision: p.revision, requestId: id(), operations: [
+    { type: 'setFade', clipId: p.video[0].id, fadeOutUs: 2_000_000 },
+    { type: 'splitClip', clipId: p.video[0].id, atUs: 2_000_000 }
+  ] });
+  assert.equal(p.video[1].fadeOutUs, 1_000_000);
+  assert.deepEqual(validateProject(JSON.parse(JSON.stringify(p))), p);
+});
 test('saved project rejects malformed clip controls before rendering', () => {
   let p = sample(); p = applyBatch(p, { projectId: p.id, revision: 0, requestId: id(), operations: [{ type: 'addClip', assetId: 'a', track: 'video' }] });
   for (const [field, value, error] of [

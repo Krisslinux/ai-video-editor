@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { Asset, Clip, Project, durationUs, projectDurationUs } from '../src/shared/project';
 
 function binary(name: 'ffmpeg' | 'ffprobe') {
@@ -53,16 +55,32 @@ export async function render(project: Project, options: RenderOptions): Promise<
   if (options.width % 2 || options.height % 2 || options.width < 2 || options.height < 2) throw new Error('Invalid output dimensions');
   const length = projectDurationUs(project);
   const inputArgs: string[] = [], filters: string[] = [], videoNames: string[] = [], audioNames: string[] = [];
-  let input = 0;
+  const sources = new Map<string, { asset: Asset; index: number; video: string[]; audio: string[]; videoUsed: number; audioUsed: number }>();
+  for (const clip of [...project.video, ...project.audio]) {
+    const asset = byId(project, clip);
+    if (!sources.has(asset.id)) {
+      const index = sources.size;
+      sources.set(asset.id, { asset, index, video: [], audio: [], videoUsed: 0, audioUsed: 0 });
+      inputArgs.push('-i', asset.path);
+    }
+  }
+  for (const source of sources.values()) {
+    const videos = project.video.filter(clip => clip.assetId === source.asset.id).length;
+    const audios = (source.asset.hasAudio ? videos : 0) + project.audio.filter(clip => clip.assetId === source.asset.id && clip.startUs < length).length;
+    source.video = Array.from({ length: videos }, (_, n) => videos === 1 ? `[${source.index}:v]` : `[vin${source.index}_${n}]`);
+    source.audio = Array.from({ length: audios }, (_, n) => audios === 1 ? `[${source.index}:a]` : `[ain${source.index}_${n}]`);
+    if (videos > 1) filters.push(`[${source.index}:v]split=${videos}${source.video.join('')}`);
+    if (audios > 1) filters.push(`[${source.index}:a]asplit=${audios}${source.audio.join('')}`);
+  }
   for (const clip of project.video) {
-    const asset = byId(project, clip), i = input++;
-    inputArgs.push('-i', asset.path);
+    const source = sources.get(clip.assetId)!;
+    const asset = source.asset;
     const scale = clip.fit === 'fill'
       ? `scale=${options.width}:${options.height}:force_original_aspect_ratio=increase,crop=${options.width}:${options.height}`
       : `scale=${options.width}:${options.height}:force_original_aspect_ratio=decrease,pad=${options.width}:${options.height}:(ow-iw)/2:(oh-ih)/2:black`;
-    const v = `v${i}`, a = `a${i}`;
-    filters.push(`[${i}:v]trim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceOutUs)},setpts=PTS-STARTPTS,fps=30,${scale},setsar=1,format=yuv420p[${v}]`);
-    if (asset.hasAudio) filters.push(`[${i}:a]atrim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceOutUs)},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${clip.gain}${clip.fadeOutUs ? `,afade=t=out:st=${sec(durationUs(clip) - clip.fadeOutUs)}:d=${sec(clip.fadeOutUs)}` : ''},apad,atrim=duration=${sec(durationUs(clip))}[${a}]`);
+    const v = `v${videoNames.length}`, a = `a${audioNames.length}`;
+    filters.push(`${source.video[source.videoUsed++]}trim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceOutUs)},setpts=PTS-STARTPTS,fps=30,${scale},setsar=1,format=yuv420p[${v}]`);
+    if (asset.hasAudio) filters.push(`${source.audio[source.audioUsed++]}atrim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceOutUs)},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${clip.gain}${clip.fadeOutUs ? `,afade=t=out:st=${sec(durationUs(clip) - clip.fadeOutUs)}:d=${sec(clip.fadeOutUs)}` : ''},apad,atrim=duration=${sec(durationUs(clip))}[${a}]`);
     else filters.push(`anullsrc=r=48000:cl=stereo,atrim=duration=${sec(durationUs(clip))}[${a}]`);
     videoNames.push(`[${v}]`); audioNames.push(`[${a}]`);
   }
@@ -72,16 +90,27 @@ export async function render(project: Project, options: RenderOptions): Promise<
   for (const clip of project.audio) {
     const effectiveDuration = Math.min(durationUs(clip), length - clip.startUs);
     if (effectiveDuration <= 0) continue;
-    const asset = byId(project, clip), i = input++, label = `music${i}`;
-    inputArgs.push('-i', asset.path);
+    const source = sources.get(clip.assetId)!;
+    const label = `music${mixes.length}`;
     const fadeLength = Math.min(clip.fadeOutUs, effectiveDuration);
     const fade = fadeLength ? `,afade=t=out:st=${sec(effectiveDuration - fadeLength)}:d=${sec(fadeLength)}` : '';
-    filters.push(`[${i}:a]atrim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceInUs + effectiveDuration)},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${clip.gain}${fade},adelay=${Math.round(clip.startUs / 1000)}:all=1[${label}]`);
+    filters.push(`${source.audio[source.audioUsed++]}atrim=start=${sec(clip.sourceInUs)}:end=${sec(clip.sourceInUs + effectiveDuration)},asetpts=PTS-STARTPTS,aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,volume=${clip.gain}${fade},adelay=${Math.round(clip.startUs / 1000)}:all=1[${label}]`);
     mixes.push(`[${label}]`);
   }
   if (mixes.length > 1) filters.push(`${mixes.join('')}amix=inputs=${mixes.length}:duration=longest:normalize=0,atrim=duration=${sec(length)}[aout]`);
   else filters.push('[baseaudio]anull[aout]');
-  await runTool('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...inputArgs, '-filter_complex', filters.join(';'), '-map', '[vout]', '-map', '[aout]', '-t', sec(length), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', options.output], options.signal);
+  const graphDir = await mkdtemp(join(tmpdir(), 'ai-video-graph-'));
+  try {
+    const graphPath = join(graphDir, 'filters.txt');
+    await writeFile(graphPath, filters.join(';'));
+    const version = await runTool('ffmpeg', ['-version']);
+    const major = Number(version.match(/^ffmpeg version (?:n)?(\d+)/)?.[1]);
+    if (!Number.isInteger(major)) throw new Error('Could not identify the installed FFmpeg version');
+    const graphOption = major >= 7 ? '-/filter_complex' : '-filter_complex_script';
+    const args = ['-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...inputArgs, graphOption, graphPath, '-map', '[vout]', '-map', '[aout]', '-t', sec(length), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', options.output];
+    if (process.platform === 'win32' && args.join(' ').length > 30_000) throw new Error('Too many distinct media paths for one Windows render');
+    await runTool('ffmpeg', args, options.signal);
+  } finally { await rm(graphDir, { recursive: true, force: true }); }
 }
 export function qualityReport(project: Project): string[] {
   const issues: string[] = [];

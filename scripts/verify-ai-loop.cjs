@@ -1,16 +1,33 @@
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const { spawn } = require('node:child_process');
-const { mkdirSync } = require('node:fs');
+const { mkdirSync, readdirSync, rmSync, statSync } = require('node:fs');
 const { join } = require('node:path');
 
 const root = join(__dirname, '..');
 const project = join(root, 'local', 'fixture', 'test-project.ave.json');
 const profile = join(root, 'local', 'ai-loop-profile');
+const previewRoot = join(profile, 'temp');
 const port = 9226;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 mkdirSync(profile, { recursive: true });
+rmSync(previewRoot, { recursive: true, force: true });
+mkdirSync(previewRoot, { recursive: true });
+function previewFiles() {
+  return readdirSync(previewRoot).filter(name => name.startsWith('ai-video-editor-'))
+    .flatMap(name => {
+      try {
+        return readdirSync(join(previewRoot, name), { recursive: true }).filter(file => {
+          try { return statSync(join(previewRoot, name, file)).isFile(); }
+          catch (error) { if (error.code === 'ENOENT') return false; throw error; }
+        });
+      } catch (error) { if (error.code === 'ENOENT') return []; throw error; }
+    });
+}
 let requestCount = 0;
+let signalSwappedRequest, releaseSwappedResponse;
+const swappedRequest = new Promise(resolve => { signalSwappedRequest = resolve; });
+const swappedResponse = new Promise(resolve => { releaseSwappedResponse = resolve; });
 const server = http.createServer(async (request, response) => {
   if (request.method !== 'POST' || request.url !== '/v1/chat/completions') {
     response.writeHead(404); response.end(); return;
@@ -31,7 +48,7 @@ const server = http.createServer(async (request, response) => {
     assert.ok(swapped || clip, 'Fixture has no audio clip');
     const invalid = prompt.instruction.includes('invalid');
     requestCount++;
-    if (swapped) await delay(600);
+    if (swapped) { signalSwappedRequest(); await swappedResponse; }
     response.writeHead(200, { 'Content-Type': 'application/json' });
     response.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
       operations: [swapped ? { type: 'setCanvas', width: 720, height: 1280 } : { type: 'setGain', clipId: clip.id, gain: invalid ? 99 : 0.35 }]
@@ -63,7 +80,7 @@ async function evaluate(ws, expression, id) {
   const child = spawn(executable, ['.', `--remote-debugging-port=${port}`, `--project=${project}`], {
     cwd: root, windowsHide: true, stdio: 'ignore',
     env: {
-      ...process.env, APPDATA: profile, XDG_CONFIG_HOME: profile,
+      ...process.env, APPDATA: profile, XDG_CONFIG_HOME: profile, TMP: previewRoot, TEMP: previewRoot, TMPDIR: previewRoot,
       PATH: process.platform === 'win32' ? `${join(root, 'vendor', 'ffmpeg', 'win32')};${process.env.PATH}` : process.env.PATH
     }
   });
@@ -96,11 +113,7 @@ async function evaluate(ws, expression, id) {
         const accepted = await window.editor.edit(proposal);
         const repeated = await window.editor.edit(proposal);
         await window.editor.newProject();
-        const stale = window.editor.propose('switch project during request');
-        await new Promise(resolve => setTimeout(resolve, 150));
-        await window.editor.newProject();
-        let switchedProjectRejected = false;
-        try { await stale; } catch (error) { switchedProjectRejected = String(error).includes('another project'); }
+        window.__staleProposal = window.editor.propose('switch project during request');
         return {
           invalidRejected,
           stagedGain: staged.project.audio[0].gain,
@@ -108,13 +121,35 @@ async function evaluate(ws, expression, id) {
           proposalCount: proposal.operations.length,
           comparisonReady: comparison.before.startsWith('editor-media://') && comparison.after.startsWith('editor-media://'),
           acceptedGain: accepted.project.audio[0].gain,
-          revisionDelta: repeated.project.revision - before.revision,
-          switchedProjectRejected
+          revisionDelta: repeated.project.revision - before.revision
         };
       })()`, 1);
-      assert.deepEqual(result, { invalidRejected: true, stagedGain: 0.2, beforeGain: 0.2, proposalCount: 1, comparisonReady: true, acceptedGain: 0.35, revisionDelta: 1, switchedProjectRejected: true });
+      let barrierTimeout;
+      try {
+        await Promise.race([
+          swappedRequest,
+          new Promise((_, reject) => { barrierTimeout = setTimeout(() => reject(new Error('Project-switch request never reached the model stub')), 10000); })
+        ]);
+      } finally { clearTimeout(barrierTimeout); }
+      for (let i = 0; i < 30 && previewFiles().length; i++) await delay(50);
+      assert.deepEqual(previewFiles(), [], 'Superseded before/after preview files were not removed');
+      await evaluate(ws, 'window.editor.newProject()', 2);
+      releaseSwappedResponse();
+      const switched = await evaluate(ws, `window.__staleProposal.then(
+        () => ({ rejected: false }),
+        error => ({ rejected: String(error).includes('another project'), message: String(error) })
+      )`, 3);
+      assert.equal(switched.rejected, true, JSON.stringify(switched));
+      assert.deepEqual(result, { invalidRejected: true, stagedGain: 0.2, beforeGain: 0.2, proposalCount: 1, comparisonReady: true, acceptedGain: 0.35, revisionDelta: 1 });
       assert.equal(requestCount, 3);
-      console.log(JSON.stringify({ ...result, localRequests: requestCount }));
+      const stopped = new Promise(resolve => child.once('close', resolve));
+      await evaluate(ws, "window.close(); 'closing'", 4);
+      let closeTimeout;
+      try {
+        await Promise.race([stopped, new Promise((_, reject) => { closeTimeout = setTimeout(() => reject(new Error('Editor did not close after window.close()')), 5000); })]);
+      } finally { clearTimeout(closeTimeout); }
+      assert.deepEqual(readdirSync(previewRoot).filter(name => name.startsWith('ai-video-editor-')), [], 'Preview directory survived graceful quit');
+      console.log(JSON.stringify({ ...result, switchedProjectRejected: true, previewFilesAfterEdit: 0, previewDirectoryRemoved: true, localRequests: requestCount }));
     } finally { ws.close(); }
-  } finally { child.kill(); }
+  } finally { releaseSwappedResponse(); child.kill(); }
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => server.close());

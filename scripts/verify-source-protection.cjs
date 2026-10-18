@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { createHash, randomUUID } = require('node:crypto');
 const { spawn, spawnSync } = require('node:child_process');
-const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');
+const { mkdirSync, readFileSync, writeFileSync, rmSync, symlinkSync } = require('node:fs');
 const { join } = require('node:path');
 const { newProject, applyBatch } = require('../dist-main/src/shared/project.js');
 const { probe } = require('../dist-main/electron/media.js');
@@ -19,16 +19,28 @@ const hash = () => createHash('sha256').update(readFileSync(source)).digest('hex
   project.assets.push(asset);
   project = applyBatch(project, { projectId: project.id, revision: project.revision, requestId: randomUUID(), operations: [{ type: 'addClip', assetId: asset.id, track: 'video' }] });
   writeFileSync(projectPath, JSON.stringify(project));
-  const before = hash();
-  const target = process.platform === 'win32' ? source.toUpperCase() : source;
-  const child = spawn(require('electron'), ['.', `--project=${projectPath}`, `--export=${target}`], { cwd: root, windowsHide: true });
-  let stderr = '';
-  child.stderr.on('data', chunk => { stderr += chunk.toString(); });
-  const timer = setTimeout(() => child.kill(), 20000);
-  const exitCode = await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
-  clearTimeout(timer);
-  assert.equal(exitCode, 1, `Expected rejected export, got exit ${exitCode}: ${stderr.slice(-1000)}`);
-  assert.match(stderr, /export path.*imported source file/i);
-  assert.equal(hash(), before, 'Export changed the imported source');
-  console.log(JSON.stringify({ sourceIntact: true, caseInsensitivePathRejected: process.platform === 'win32' }));
+  async function expectRejected(target) {
+    const before = hash();
+    const child = spawn(require('electron'), ['.', `--project=${projectPath}`, `--export=${target}`], { cwd: root, windowsHide: true });
+    let stderr = '';
+    child.stderr.on('data', chunk => { stderr += chunk.toString(); });
+    const timer = setTimeout(() => child.kill(), 20000);
+    const exitCode = await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
+    clearTimeout(timer);
+    assert.equal(exitCode, 1, `Expected rejected export, got exit ${exitCode}: ${stderr.slice(-1000)}`);
+    assert.match(stderr, /export path.*imported source file/i);
+    assert.equal(hash(), before, 'Export changed the imported source');
+  }
+  await expectRejected(process.platform === 'win32' ? source.toUpperCase() : source);
+  const alias = join(dir, 'imported-alias.mp4');
+  rmSync(alias, { force: true });
+  let symlinkChecked = false;
+  try { symlinkSync(source, alias, 'file'); symlinkChecked = true; }
+  catch (error) { if (!['EPERM', 'EACCES'].includes(error.code)) throw error; }
+  if (symlinkChecked) {
+    project.assets[0].path = alias;
+    writeFileSync(projectPath, JSON.stringify(project));
+    await expectRejected(source);
+  }
+  console.log(JSON.stringify({ sourceIntact: true, caseInsensitivePathRejected: process.platform === 'win32', symlinkAliasRejected: symlinkChecked }));
 })().catch(error => { console.error(error); process.exitCode = 1; });
