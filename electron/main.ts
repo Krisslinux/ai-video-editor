@@ -171,7 +171,7 @@ app.whenReady().then(async () => {
       console.error(`Telemetry smoke test failed: ${error instanceof Error ? error.message : 'unknown error'}`);
       process.exitCode = 1;
     }
-    app.exit(process.exitCode || 0); return;
+    app.exit(typeof process.exitCode === 'number' ? process.exitCode : 0); return;
   }
   previewDir = await mkdtemp(join(tmpdir(), 'ai-video-editor-'));
   await loadSettings();
