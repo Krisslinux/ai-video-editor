@@ -13,10 +13,11 @@ Statuses: done, partial, pending, blocked. Completion means the observable check
 | 1 | Live AI edit with compatible provider | Blocked | Endpoint/model/credential or local server not configured in this environment |
 | 1 | Windows installer with bundled tools and clean-install test | Blocked | Reviewed redistributable FFmpeg build; accessible Windows host is not a clean install target yet |
 | 1 | Offline manual loop, real phone footage, creator pilot templates | Partial | Offline dispatch gate and pilot template; external-network test/footage pending |
+| 1 | Opt-in diagnostic delivery and redaction | Partial | Windows loopback envelope/redaction/opt-out/offline check passes; external Sentry project and persisted UI toggle pending |
 | 1B | Eligible ChatGPT account flow, MCP hosts, model discovery, local adapters and enforced budgets | Pending | Official route/client compatibility and credentials |
 | 2 | Transcript/captions/cleanup/ducking; selective review, full locks, quality analysis, durable jobs/interchange | Pending | Core editor baseline |
 | 3 | Storyboard, reference analysis, B-roll, graphics, TTS and description-to-video | Pending | Media/AI capability adapters |
 | 4 | Auto alignment, beat/reframe, cleanup, dubbing, optional generation/lip-sync | Pending | Models, licenses, fixtures, hardware |
 | 5 | Safe updates, long-project performance, macOS/Linux, signed releases | Pending | Installer and project migration baseline |
 
-Next: check supplied real phone video and separate microphone track through Windows import/export. Bundle a reviewed FFmpeg redistributable and clean-install the Windows package. Verify a live provider edit and opt-in Sentry event only when those connections are configured.
+Next: complete CodeRabbit full review, then run a VFR/rotation fixture before checking supplied real phone video and separate microphone audio through Windows import/export. Bundle a reviewed FFmpeg redistributable and clean-install the Windows package. Verify live provider and external Sentry delivery when those connections are configured.

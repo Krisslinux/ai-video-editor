@@ -19,6 +19,8 @@ For a non-interactive render through the same export path, pass `--export=/absol
 
 For checks: `npm run typecheck`, `npm test` (after `npm run build`), `npm run verify:loop`, and `npm run verify:sync`. The last two commands render synthetic edits and check output geometry, clip order, and separate-track/source-audio flash/click timing after a trim and join. Fixtures are ignored by Git.
 
+On Windows, `npm run verify:telemetry` launches Electron against a local receiver and verifies that opt-in diagnostics are redacted and offline/opt-out states send no event. It uses no external Sentry project.
+
 Export uses H.264 (libx264) video and AAC audio in MP4 through the selected FFmpeg build, required for Chromium preview playback. This initial codec choice needs a GPL-compatible FFmpeg redistribution review before packaging. Supported imports are MP4, MOV, MKV, WebM, MP3, WAV, M4A, and AAC when that FFmpeg build can decode them. Corrupt/unsupported inputs report an error. Source media remains at its original path and must remain accessible.
 
 The Windows packaging command is `npm run pack:win`, but it deliberately requires a reviewed redistributable FFmpeg/ffprobe bundle under `vendor/ffmpeg/win32/` before it runs. See [releases](docs/RELEASES.md). No installer has passed clean-machine testing yet.
