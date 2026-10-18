@@ -31,8 +31,8 @@ export async function discoverMediaTools() {
 }
 export async function probe(path: string): Promise<Omit<Asset, 'id' | 'name' | 'path'>> {
   const raw = await runTool('ffprobe', ['-v', 'error', '-show_format', '-show_streams', '-of', 'json', path]);
-  const info = JSON.parse(raw) as { format?: { duration?: string }; streams?: Array<{ codec_type: string; width?: number; height?: number; avg_frame_rate?: string; sample_rate?: string; channels?: number; duration?: string; side_data_list?: Array<{ rotation?: number }> }> };
-  const video = info.streams?.find(s => s.codec_type === 'video');
+  const info = JSON.parse(raw) as { format?: { duration?: string }; streams?: Array<{ codec_type: string; width?: number; height?: number; avg_frame_rate?: string; sample_rate?: string; channels?: number; duration?: string; disposition?: { attached_pic?: number }; side_data_list?: Array<{ rotation?: number }> }> };
+  const video = info.streams?.find(s => s.codec_type === 'video' && !s.disposition?.attached_pic);
   const audio = info.streams?.find(s => s.codec_type === 'audio');
   if (!video && !audio) throw new Error('No supported video or audio stream found');
   const duration = Number(info.format?.duration ?? video?.duration ?? audio?.duration);

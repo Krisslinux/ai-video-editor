@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Asset, Clip, EditBatch, Operation, Project, durationUs, newProject, projectDurationUs, seconds } from '../shared/project';
 import './style.css';
@@ -16,6 +16,10 @@ type API = {
 declare global { interface Window { editor: API } }
 
 const presets: Record<string, [number, number]> = { '16:9': [1280, 720], '9:16': [720, 1280], '1:1': [1080, 1080], '4:5': [864, 1080], '4:3': [1024, 768], '21:9': [1680, 720] };
+function isLoopbackEndpoint(endpoint: string) {
+  try { return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(endpoint).hostname); }
+  catch { return false; }
+}
 function App() {
   const [state, setState] = useState<State>({ project: newProject() });
   const [selected, setSelected] = useState<string>();
@@ -32,11 +36,19 @@ function App() {
   const [token, setToken] = useState('');
   const [allowUnbounded, setAllowUnbounded] = useState(false);
   const [report, setReport] = useState<string[]>();
+  const [gainDraft, setGainDraft] = useState(1);
+  const [fadeDraft, setFadeDraft] = useState('0');
+  const pendingDraft = useRef<string | undefined>(undefined);
   const [width, setWidth] = useState(1280), [height, setHeight] = useState(720);
   const project = state.project;
   const clip = [...project.video, ...project.audio].find(c => c.id === selected);
   const asset = clip && project.assets.find(a => a.id === clip.assetId);
   const length = projectDurationUs(project);
+  useEffect(() => {
+    setGainDraft(clip?.gain ?? 1);
+    setFadeDraft(String((clip?.fadeOutUs ?? 0) / 1e6));
+    pendingDraft.current = undefined;
+  }, [clip?.id, clip?.gain, clip?.fadeOutUs]);
   useEffect(() => {
     void window.editor.state().then(s => { setState(s); setWidth(s.project.canvas.width); setHeight(s.project.canvas.height); });
     void window.editor.settings().then(s => { setSettings(s); if (s.connection) { setEndpoint(s.connection.endpoint); setModel(s.connection.model); setAllowUnbounded(s.connection.allowUnbounded); } });
@@ -50,6 +62,19 @@ function App() {
   }
   function receive(s: State) { setState(s); setProposal(undefined); setComparison(undefined); setReport(undefined); if (s.errors?.length) setStatus(s.errors.join(' | ')); }
   function edit(operations: Operation[]) { void execute('Edit', () => window.editor.edit({ projectId: project.id, revision: project.revision, requestId: crypto.randomUUID(), operations }), receive); }
+  function commitDraft(kind: 'gain' | 'fade', value: number) {
+    if (!clip || busy || !Number.isFinite(value)) return;
+    const current = kind === 'gain' ? clip.gain : clip.fadeOutUs;
+    const next = kind === 'gain' ? value : Math.round(value * 1e6);
+    const key = `${clip.id}:${kind}:${next}`;
+    if (current === next || pendingDraft.current === key) return;
+    pendingDraft.current = key;
+    const operations: Operation[] = kind === 'gain'
+      ? [{ type: 'setGain', clipId: clip.id, gain: next }]
+      : [{ type: 'setFade', clipId: clip.id, fadeOutUs: next }];
+    void execute('Edit', () => window.editor.edit({ projectId: project.id, revision: project.revision, requestId: crypto.randomUUID(), operations }), receive)
+      .then(result => { if (!result && pendingDraft.current === key) pendingDraft.current = undefined; });
+  }
   function setCanvas(w: number, h: number) { setWidth(w); setHeight(h); edit([{ type: 'setCanvas', width: w, height: h }]); }
   function selectedClipCard(c: Clip, track: 'video' | 'audio') {
     const a = project.assets.find(item => item.id === c.assetId);
@@ -101,8 +126,8 @@ function App() {
               <button onClick={() => edit([{ type: 'trimClip', clipId: clip.id, sourceInUs: clip.sourceInUs, sourceOutUs: clip.sourceOutUs - 1_000_000 }])}>Trim 1s end</button>
               <button onClick={() => edit([{ type: 'splitClip', clipId: clip.id, atUs: Math.floor(durationUs(clip) / 2) }])}>Split in half</button>
               {project.video.some(c => c.id === clip.id) && <><button onClick={() => edit([{ type: 'moveClip', clipId: clip.id, index: Math.max(0, project.video.findIndex(c => c.id === clip.id) - 1) }])}>Move left</button><button onClick={() => edit([{ type: 'moveClip', clipId: clip.id, index: Math.min(project.video.length - 1, project.video.findIndex(c => c.id === clip.id) + 1) }])}>Move right</button></>}
-            </div><div className="controls"><label>Gain <input aria-label="Clip gain" type="range" min="0" max="2" step="0.05" value={clip.gain} onChange={e => edit([{ type: 'setGain', clipId: clip.id, gain: Number(e.target.value) }])}/>{Math.round(clip.gain * 100)}%</label>
-              <label>Fade out (s) <input aria-label="Fade out seconds" type="number" min="0" step="0.25" max={seconds(durationUs(clip))} value={clip.fadeOutUs / 1e6} onChange={e => edit([{ type: 'setFade', clipId: clip.id, fadeOutUs: Math.round(Number(e.target.value) * 1e6) }])}/></label>
+            </div><div className="controls"><label>Gain <input aria-label="Clip gain" type="range" min="0" max="2" step="0.05" disabled={busy} value={gainDraft} onChange={e => setGainDraft(Number(e.target.value))} onPointerUp={e => commitDraft('gain', Number(e.currentTarget.value))} onBlur={e => commitDraft('gain', Number(e.currentTarget.value))} onKeyDown={e => { if (e.key === 'Enter') { commitDraft('gain', Number(e.currentTarget.value)); e.currentTarget.blur(); } }}/>{Math.round(gainDraft * 100)}%</label>
+              <label>Fade out (s) <input aria-label="Fade out seconds" type="number" min="0" step="0.25" max={seconds(durationUs(clip))} disabled={busy} value={fadeDraft} onChange={e => setFadeDraft(e.target.value)} onPointerUp={e => commitDraft('fade', Number(e.currentTarget.value))} onBlur={e => commitDraft('fade', Number(e.currentTarget.value))} onKeyDown={e => { if (e.key === 'Enter') { commitDraft('fade', Number(e.currentTarget.value)); e.currentTarget.blur(); } }}/></label>
               <label>Framing <select value={clip.fit} onChange={e => edit([{ type: 'setFit', clipId: clip.id, fit: e.target.value as 'fit' | 'fill' }])}><option value="fit">Fit · show all</option><option value="fill">Fill · crop to canvas</option></select></label>
               <label className="lock"><input type="checkbox" checked={Boolean(clip.locks.content)} onChange={e => void execute('Protect content', () => window.editor.lock(clip.id, 'content', e.target.checked), receive)}/> Protect source content</label>
               <label className="lock"><input type="checkbox" checked={Boolean(clip.locks.position)} onChange={e => void execute('Protect position', () => window.editor.lock(clip.id, 'position', e.target.checked), receive)}/> Protect position</label>
@@ -113,7 +138,7 @@ function App() {
       <aside className="right panel"><div className="panel-heading"><div><small>ASSIST</small><h2>AI editor</h2></div></div>
         <p className="hint">A configured model proposes validated edits. Review the batch before applying it.</p>
         <label htmlFor="instruction">Editing instruction</label><textarea id="instruction" value={instruction} onChange={e => setInstruction(e.target.value)} rows={6}/>
-        <button className="accent full" disabled={busy || !settings.connection || settings.offline && !settings.connection.endpoint.includes('127.0.0.1')} onClick={() => void execute('Request AI edit', () => window.editor.propose(instruction), setProposal)}>Propose edit</button>
+        <button className="accent full" disabled={busy || !settings.connection || settings.offline && !isLoopbackEndpoint(settings.connection.endpoint)} onClick={() => void execute('Request AI edit', () => window.editor.propose(instruction), setProposal)}>Propose edit</button>
         {!settings.connection && <div className="notice">Configure a compatible model endpoint in Settings. Manual editing and export work without AI.</div>}
         {proposal && <div className="proposal"><strong>Proposed batch · {proposal.operations.length} changes</strong><p>Project revision {proposal.revision}. This is not applied yet.</p><ol>{proposal.operations.map((op, i) => <li key={i}>{op.type}: {JSON.stringify(op)}</li>)}</ol><div className="inline"><button disabled={busy} onClick={() => void execute('Render comparison', () => window.editor.reviewPreview(proposal), c => { setComparison(c); setShowAfter(true); })}>Compare previews</button>{comparison && <button onClick={() => setShowAfter(v => !v)}>{showAfter ? 'Show original' : 'Show proposed'}</button>}<button onClick={() => { setProposal(undefined); setComparison(undefined); }}>Reject</button><button className="accent" onClick={() => void execute('Accept AI edit', () => window.editor.edit(proposal), receive)}>Accept batch</button></div></div>}
         <div className="divider"/><div className="panel-heading"><div><small>OUTPUT</small><h2>Canvas</h2></div></div>

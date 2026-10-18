@@ -1,10 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, safeStorage, IpcMainInvokeEvent } from 'electron';
 import { readFile, rename, writeFile, mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
 import { Asset, EditBatch, Operation, Project, applyBatch, newProject, projectDurationUs, setUserLock, validateProject } from '../src/shared/project';
+import { tokenForEndpoint } from '../src/shared/connection';
 import { discoverMediaTools, probe, qualityReport, render, runTool } from './media';
 import * as Sentry from '@sentry/electron/main';
 
@@ -133,6 +134,11 @@ async function askModel(instruction: string): Promise<EditBatch> {
 async function exportTo(output: string) {
   if (activeRender) throw new Error('A render is already running');
   if (qualityReport(project).some(issue => issue.startsWith('No video') || issue.startsWith('Missing media'))) throw new Error('Resolve missing video/media before export');
+  const target = resolve(output);
+  if (project.assets.some(asset => {
+    const source = resolve(asset.path);
+    return process.platform === 'win32' ? source.toLowerCase() === target.toLowerCase() : source === target;
+  })) throw new Error('Choose an export path that is not an imported source file');
   const temp = join(dirname(output), `.${basename(output)}.${crypto.randomUUID()}.mp4`);
   activeRender = new AbortController(); const revision = project.revision;
   try {
@@ -183,11 +189,12 @@ app.whenReady().then(async () => {
   }
   const exportPath = process.argv.find(arg => arg.startsWith('--export='))?.slice('--export='.length);
   if (exportPath) {
+    let exitCode = 0;
     try {
       if (!projectPath) throw new Error('Supply a valid --project path with --export');
       console.log(JSON.stringify(await exportTo(exportPath)));
-    } catch (error) { console.error(`Export failed: ${error instanceof Error ? error.message : 'unknown error'}`); process.exitCode = 1; }
-    app.quit(); return;
+    } catch (error) { console.error(`Export failed: ${error instanceof Error ? error.message : 'unknown error'}`); exitCode = 1; }
+    app.exit(exitCode); return;
   }
   protocol.handle('editor-media', request => {
     const url = new URL(request.url);
@@ -288,7 +295,7 @@ handle('set-connection', async (_event, input: { endpoint: string; model: string
   checkConnection(input.endpoint);
   if (!/^[a-zA-Z0-9._:/-]{1,120}$/.test(input.model)) throw new Error('Enter a valid model ID');
   const previous = settings.connection;
-  settings.connection = { endpoint: input.endpoint, model: input.model, token: input.token || settings.connection?.token, allowUnbounded: Boolean(input.allowUnbounded) };
+  settings.connection = { endpoint: input.endpoint, model: input.model, token: tokenForEndpoint(input.endpoint, input.token, previous), allowUnbounded: Boolean(input.allowUnbounded) };
   try { await saveSettings(); } catch (error) { settings.connection = previous; throw error; }
   return publicSettings();
 });

@@ -34,6 +34,9 @@ jobs:
       - name: Verify opt-in diagnostics on Windows
         if: runner.os == 'Windows'
         run: npm run verify:telemetry
+      - name: Protect imported source on Windows export
+        if: runner.os == 'Windows'
+        run: npm run verify:source-protection
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Windows'
         with:

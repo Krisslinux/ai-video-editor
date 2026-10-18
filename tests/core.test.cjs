@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { newProject, applyBatch, setUserLock, projectDurationUs, validateProject } = require('../dist-main/src/shared/project.js');
+const { tokenForEndpoint } = require('../dist-main/src/shared/connection.js');
 const id = () => crypto.randomUUID();
 function sample() { let p = newProject(); p.assets = [{ id: 'a', name: 'a.mp4', path: '/not-needed-for-core', kind: 'video', durationUs: 3_000_000, hasAudio: true }]; return p; }
 test('a batch is atomic and stale revisions cannot commit', () => {
@@ -21,4 +22,23 @@ test('saved project preserves exact timing and locks', () => {
   let p = sample(); p = applyBatch(p, { projectId: p.id, revision: 0, requestId: id(), operations: [{ type: 'addClip', assetId: 'a', track: 'video' }] });
   p = setUserLock(p, p.video[0].id, 'content', true);
   assert.deepEqual(validateProject(JSON.parse(JSON.stringify(p))), p);
+});
+test('saved project rejects malformed clip controls before rendering', () => {
+  let p = sample(); p = applyBatch(p, { projectId: p.id, revision: 0, requestId: id(), operations: [{ type: 'addClip', assetId: 'a', track: 'video' }] });
+  for (const [field, value, error] of [
+    ['gain', undefined, /gain/], ['gain', Infinity, /gain/], ['fadeOutUs', 4_000_000, /fade/],
+    ['fit', 'stretch', /framing/], ['locks', undefined, /protection/], ['locks', { gain: 'yes' }, /protection/]
+  ]) {
+    const corrupted = structuredClone(p);
+    corrupted.video[0][field] = value;
+    assert.throws(() => validateProject(corrupted), error);
+  }
+});
+test('stored AI token is reused only for the same endpoint origin', () => {
+  const previous = { endpoint: 'https://provider.example/v1', token: 'private-A' };
+  assert.equal(tokenForEndpoint('https://provider.example/v2', '', previous), 'private-A');
+  assert.equal(tokenForEndpoint('https://other.example/v1', '', previous), undefined);
+  assert.equal(tokenForEndpoint('https://provider.example:8443/v1', '', previous), undefined);
+  assert.equal(tokenForEndpoint('https://other.example/v1', 'private-B', previous), 'private-B');
+  assert.equal(tokenForEndpoint('https://other.example/v1', '', { endpoint: 'not a URL', token: 'private-A' }), undefined);
 });
