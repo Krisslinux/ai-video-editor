@@ -8,7 +8,7 @@ Statuses: done, partial, pending, blocked. Completion means the observable check
 | 0 | Narrow IPC, FFmpeg discovery, project atomic save | Partial | Windows desktop launched; project saved/reopened; native dialogs still pending |
 | 0 | CI and packaging command | Partial | CI workflow; Windows bundle/license and runner still needed |
 | 1 | Import two clips + audio; manual trim/split/order/gain; undo/redo | Partial | Windows UI trim/undo/redo checked; import dialog and real footage pending |
-| 1 | Fit/Fill, ratio presets/custom even dimensions, preview/export | Partial | Linux/Windows H.264 export/preview and four flash/click marker offsets checked; real footage pending |
+| 1 | Fit/Fill, ratio presets/custom even dimensions, preview/export | Partial | Linux/Windows H.264 export/preview, flash/click offsets, and synthetic VFR/rotation checked; real footage pending |
 | 1 | Initial locks, whole-batch before/after, quality warnings | Partial | Validator tests; screenshot/UI and warning fixtures pending |
 | 1 | Live AI edit with compatible provider | Blocked | Endpoint/model/credential or local server not configured in this environment |
 | 1 | Windows installer with bundled tools and clean-install test | Blocked | Reviewed redistributable FFmpeg build; accessible Windows host is not a clean install target yet |
@@ -20,4 +20,4 @@ Statuses: done, partial, pending, blocked. Completion means the observable check
 | 4 | Auto alignment, beat/reframe, cleanup, dubbing, optional generation/lip-sync | Pending | Models, licenses, fixtures, hardware |
 | 5 | Safe updates, long-project performance, macOS/Linux, signed releases | Pending | Installer and project migration baseline |
 
-Next: complete CodeRabbit full review, then run a VFR/rotation fixture before checking supplied real phone video and separate microphone audio through Windows import/export. Bundle a reviewed FFmpeg redistributable and clean-install the Windows package. Verify live provider and external Sentry delivery when those connections are configured.
+Next: complete CodeRabbit full review and address findings. Then check real phone video and separate microphone audio through Windows import/export when supplied. Bundle a reviewed FFmpeg redistributable and clean-install the Windows package. Verify live provider and external Sentry delivery when those connections are configured.

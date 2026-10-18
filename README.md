@@ -17,7 +17,7 @@ Use **Import media**, add two videos and one audio file to the timeline, then **
 For scripted opening of a trusted project file, run `npm start -- --project=/absolute/path/project.ave.json` (quote the path when it has spaces). The same schema validation applies.
 For a non-interactive render through the same export path, pass `--export=/absolute/path/output.mp4` alongside `--project`. It finalizes only after probing the output.
 
-For checks: `npm run typecheck`, `npm test` (after `npm run build`), `npm run verify:loop`, and `npm run verify:sync`. The last two commands render synthetic edits and check output geometry, clip order, and separate-track/source-audio flash/click timing after a trim and join. Fixtures are ignored by Git.
+For checks: `npm run typecheck`, `npm test` (after `npm run build`), `npm run verify:loop`, `npm run verify:sync`, and `npm run verify:phone`. The render fixtures check output geometry, clip order, separate-track/source-audio flash/click timing after a trim and join, and a synthetic variable-frame-rate portrait clip with 90° display rotation. Fixtures are ignored by Git.
 
 On Windows, `npm run verify:telemetry` launches Electron against a local receiver and verifies that opt-in diagnostics are redacted and offline/opt-out states send no event. It uses no external Sentry project.
 
