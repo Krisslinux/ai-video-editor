@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, safeStorage, IpcMainInvokeEvent } from 'electron';
 import { readFile, rename, writeFile, mkdtemp, rm, mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
@@ -24,6 +24,29 @@ let settings: Settings = { offline: false, telemetry: false };
 let telemetryActive = false;
 const settingsPath = () => join(app.getPath('userData'), 'settings.json');
 const secureTokenStorage = () => safeStorage.isEncryptionAvailable() && (process.platform !== 'linux' || safeStorage.getSelectedStorageBackend() !== 'basic_text');
+
+// The Electron SDK registers its IPC scheme before app ready. Read only the two
+// reporting switches here; credentials and the rest of settings load later.
+if (!process.argv.includes('--verify-telemetry')) {
+  try {
+    const stored = JSON.parse(readFileSync(settingsPath(), 'utf8')) as Partial<Settings>;
+    settings.offline = Boolean(stored.offline);
+    settings.telemetry = Boolean(stored.telemetry);
+  } catch { /* First run or unreadable settings. */ }
+}
+if (process.env.AI_VIDEO_EDITOR_SENTRY_DSN) {
+  telemetryActive = settings.telemetry && !settings.offline;
+  Sentry.init({
+    dsn: process.env.AI_VIDEO_EDITOR_SENTRY_DSN,
+    enabled: telemetryActive,
+    defaultIntegrations: false,
+    sendClientReports: false,
+    tracesSampleRate: 0,
+    beforeSend(event) {
+      return { type: event.type, event_id: event.event_id, timestamp: event.timestamp, level: event.level, message: 'Editor diagnostic', tags: { category: 'opt-in-diagnostic' } };
+    }
+  });
+}
 
 function change(next: Project, requestId?: string) {
   next.revision = project.revision + 1;
@@ -66,16 +89,10 @@ async function loadSettings() {
 async function syncTelemetry() {
   const enabled = Boolean(settings.telemetry && !settings.offline && process.env.AI_VIDEO_EDITOR_SENTRY_DSN);
   if (enabled === telemetryActive) return;
-  if (!enabled) { await Sentry.close(1000); telemetryActive = false; return; }
-  Sentry.init({
-    dsn: process.env.AI_VIDEO_EDITOR_SENTRY_DSN,
-    defaultIntegrations: false,
-    sendClientReports: false,
-    tracesSampleRate: 0,
-    beforeSend(event) {
-      return { type: event.type, event_id: event.event_id, timestamp: event.timestamp, level: event.level, message: 'Editor diagnostic', tags: { category: 'opt-in-diagnostic' } };
-    }
-  });
+  const client = Sentry.getClient();
+  if (!client) throw new Error('Restart the editor with a configured Sentry DSN');
+  if (!enabled) { telemetryActive = false; await Sentry.close(1000); return; }
+  client.getOptions().enabled = true;
   telemetryActive = true;
 }
 function isLocal(endpoint: string) { const u = new URL(endpoint); return ['localhost', '127.0.0.1', '[::1]'].includes(u.hostname); }
@@ -154,7 +171,7 @@ app.whenReady().then(async () => {
       console.error(`Telemetry smoke test failed: ${error instanceof Error ? error.message : 'unknown error'}`);
       process.exitCode = 1;
     }
-    app.quit(); return;
+    app.exit(process.exitCode || 0); return;
   }
   previewDir = await mkdtemp(join(tmpdir(), 'ai-video-editor-'));
   await loadSettings();

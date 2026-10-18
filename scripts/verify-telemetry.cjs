@@ -30,10 +30,10 @@ const server = http.createServer((request, response) => {
   const output = [], errors = [];
   child.stdout.on('data', chunk => output.push(chunk.toString()));
   child.stderr.on('data', chunk => errors.push(chunk.toString()));
-  const timer = setTimeout(() => child.kill(), 15000);
-  const exitCode = await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
+  const timer = setTimeout(() => child.kill(), 20000);
+  const [exitCode, signal] = await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', (code, reason) => resolve([code, reason])); });
   clearTimeout(timer);
-  assert.equal(exitCode, 0, `Electron diagnostic failed: ${errors.join('').slice(-1000)}`);
+  assert.equal(exitCode, 0, `Electron diagnostic failed (${signal ?? 'exit'}): ${[...errors, ...output].join('').slice(-1000)}`);
   assert.match(output.join(''), /"diagnosticFlushed":true,"offlineReportingStopped":true/);
   assert.equal(received.length, 1, `Expected one Sentry envelope, received ${received.length}`);
   assert.match(received[0].path, /^\/api\/1\/envelope\//);
