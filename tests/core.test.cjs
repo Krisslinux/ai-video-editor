@@ -80,6 +80,24 @@ test('saved project rejects malformed clip controls before rendering', () => {
     assert.throws(() => validateProject(corrupted), error);
   }
 });
+test('opened projects reject corrupt assets, track placement, gaps, and duplicate IDs', () => {
+  let p = sample();
+  p = applyBatch(p, { projectId: p.id, revision: p.revision, requestId: id(), operations: [
+    { type: 'addClip', assetId: 'a', track: 'video' }, { type: 'addClip', assetId: 'a', track: 'video' }
+  ] });
+  for (const [mutate, error] of [
+    [q => { q.assets[0].durationUs = -1; }, /Invalid project asset/],
+    [q => { q.assets[0].kind = 'audio'; }, /wrong track/],
+    [q => { q.video[1].startUs += 1000; }, /contiguous/],
+    [q => { q.video[1].id = q.video[0].id; }, /Duplicate or invalid clip ID/],
+    [q => { q.assets.push({ ...q.assets[0] }); }, /Duplicate asset ID/]
+  ]) {
+    const corrupted = structuredClone(p);
+    mutate(corrupted);
+    assert.throws(() => validateProject(corrupted), error);
+  }
+  assert.deepEqual(validateProject(JSON.parse(JSON.stringify(p))), p);
+});
 test('stored AI token is reused only for the same endpoint origin', () => {
   const previous = { endpoint: 'https://provider.example/v1', token: 'private-A' };
   assert.equal(tokenForEndpoint('https://provider.example/v2', '', previous), 'private-A');

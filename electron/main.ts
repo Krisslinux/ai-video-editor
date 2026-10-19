@@ -9,7 +9,6 @@ import { tokenForEndpoint } from '../src/shared/connection';
 import { discoverMediaTools, probe, qualityReport, render, runTool } from './media';
 import * as Sentry from '@sentry/electron/main';
 
-protocol.registerSchemesAsPrivileged([{ scheme: 'editor-media', privileges: { secure: true, standard: true, stream: true, supportFetchAPI: true } }]);
 let window: BrowserWindow;
 let project = newProject(), projectPath: string | undefined;
 let undoStack: Project[] = [], redoStack: Project[] = [];
@@ -50,6 +49,7 @@ if (process.env.AI_VIDEO_EDITOR_SENTRY_DSN) {
     }
   });
 }
+protocol.registerSchemesAsPrivileged([{ scheme: 'editor-media', privileges: { secure: true, standard: true, stream: true, supportFetchAPI: true } }]);
 
 function change(next: Project, requestId?: string) {
   next.revision = project.revision + 1;

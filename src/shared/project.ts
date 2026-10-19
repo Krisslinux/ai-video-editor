@@ -135,16 +135,35 @@ export function validateProject(input: unknown): Project {
   assert(p.schemaVersion === 1, 'Unsupported project version; this file was not changed');
   assert(Array.isArray(p.assets) && Array.isArray(p.video) && Array.isArray(p.audio), 'Invalid project tracks');
   assert(p.assets.length < 10000 && p.video.length < 10000 && p.audio.length < 10000, 'Project too large');
+  assert(typeof p.id === 'string' && p.id.length > 0 && typeof p.name === 'string', 'Invalid project identity');
   assert(Number.isSafeInteger(p.revision) && p.revision >= 0, 'Invalid project revision');
-  assert(Number.isSafeInteger(p.canvas.width) && Number.isSafeInteger(p.canvas.height), 'Invalid canvas');
-  for (const clip of [...p.video, ...p.audio]) {
-    assert(p.assets.some(a => a.id === clip.assetId), 'Project has an unknown asset');
-    assert(validTime(clip.startUs) && validTime(clip.sourceInUs) && validTime(clip.sourceOutUs) && clip.sourceOutUs > clip.sourceInUs, 'Invalid clip time');
-    assert(clip.sourceOutUs <= p.assets.find(a => a.id === clip.assetId)!.durationUs, 'Clip exceeds source duration');
-    assert(typeof clip.gain === 'number' && Number.isFinite(clip.gain) && clip.gain >= 0 && clip.gain <= 2, 'Invalid clip gain');
-    assert(validTime(clip.fadeOutUs) && clip.fadeOutUs <= durationUs(clip), 'Invalid clip fade');
-    assert(clip.fit === 'fit' || clip.fit === 'fill', 'Invalid clip framing');
-    assert(clip.locks !== null && typeof clip.locks === 'object' && !Array.isArray(clip.locks) && Object.entries(clip.locks).every(([key, value]) => ['content', 'timing', 'position', 'gain'].includes(key) && typeof value === 'boolean'), 'Invalid clip protection');
+  assert(p.canvas && Number.isSafeInteger(p.canvas.width) && Number.isSafeInteger(p.canvas.height) && p.canvas.frameRate === 30, 'Invalid canvas');
+  const assetIds = new Set<string>();
+  for (const asset of p.assets) {
+    assert(asset && typeof asset.id === 'string' && asset.id.length > 0 && typeof asset.path === 'string' && asset.path.length > 0 && typeof asset.name === 'string' && (asset.kind === 'video' || asset.kind === 'audio') && validTime(asset.durationUs) && asset.durationUs > 0 && typeof asset.hasAudio === 'boolean', 'Invalid project asset');
+    assert(!assetIds.has(asset.id), 'Duplicate asset ID'); assetIds.add(asset.id);
+  }
+  const clipIds = new Set<string>();
+  let videoEnd = 0;
+  for (const track of ['video', 'audio'] as const) {
+    for (const clip of p[track]) {
+      assert(clip && typeof clip.id === 'string' && clip.id.length > 0 && !clipIds.has(clip.id), 'Duplicate or invalid clip ID');
+      clipIds.add(clip.id);
+      const asset = p.assets.find(a => a.id === clip.assetId);
+      assert(asset, 'Project has an unknown asset');
+      assert(asset.kind === track, 'Clip is on the wrong track');
+      assert(validTime(clip.startUs) && validTime(clip.sourceInUs) && validTime(clip.sourceOutUs) && clip.sourceOutUs > clip.sourceInUs, 'Invalid clip time');
+      assert(clip.sourceOutUs <= asset.durationUs, 'Clip exceeds source duration');
+      if (track === 'video') {
+        assert(clip.startUs === videoEnd, 'Video clips must be contiguous');
+        videoEnd += durationUs(clip);
+        assert(Number.isSafeInteger(videoEnd), 'Video timeline is too long');
+      }
+      assert(typeof clip.gain === 'number' && Number.isFinite(clip.gain) && clip.gain >= 0 && clip.gain <= 2, 'Invalid clip gain');
+      assert(validTime(clip.fadeOutUs) && clip.fadeOutUs <= durationUs(clip), 'Invalid clip fade');
+      assert(clip.fit === 'fit' || clip.fit === 'fill', 'Invalid clip framing');
+      assert(clip.locks !== null && typeof clip.locks === 'object' && !Array.isArray(clip.locks) && Object.entries(clip.locks).every(([key, value]) => ['content', 'timing', 'position', 'gain'].includes(key) && typeof value === 'boolean'), 'Invalid clip protection');
+    }
   }
   applyBatch(p, { projectId: p.id, revision: p.revision, operations: [{ type: 'setCanvas', width: p.canvas.width, height: p.canvas.height }], requestId: 'validate' });
   return p;
