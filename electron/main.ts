@@ -164,7 +164,9 @@ async function exportTo(output: string) {
   if (qualityReport(project).some(issue => issue.startsWith('No video') || issue.startsWith('Missing media'))) throw new Error('Resolve missing video/media before export');
   const target = await canonicalPath(output);
   for (const asset of project.assets) {
-    const source = await canonicalPath(asset.path);
+    let source: string;
+    try { source = await canonicalPath(asset.path); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue; throw error; }
     if (process.platform === 'win32' ? source.toLowerCase() === target.toLowerCase() : source === target)
       throw new Error('Choose an export path that is not an imported source file');
   }

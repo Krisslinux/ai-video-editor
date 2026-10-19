@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { newProject, applyBatch, setUserLock, projectDurationUs, validateProject } = require('../dist-main/src/shared/project.js');
 const { tokenForEndpoint } = require('../dist-main/src/shared/connection.js');
+const { graphOptionForVersion } = require('../dist-main/electron/media.js');
 const id = () => crypto.randomUUID();
 function sample() { let p = newProject(); p.assets = [{ id: 'a', name: 'a.mp4', path: '/not-needed-for-core', kind: 'video', durationUs: 3_000_000, hasAudio: true }]; return p; }
 test('a batch is atomic and stale revisions cannot commit', () => {
@@ -51,4 +52,11 @@ test('stored AI token is reused only for the same endpoint origin', () => {
   assert.equal(tokenForEndpoint('https://provider.example:8443/v1', '', previous), undefined);
   assert.equal(tokenForEndpoint('https://other.example/v1', 'private-B', previous), 'private-B');
   assert.equal(tokenForEndpoint('https://other.example/v1', '', { endpoint: 'not a URL', token: 'private-A' }), undefined);
+});
+test('filter graph file option matches release and nightly FFmpeg builds', () => {
+  assert.equal(graphOptionForVersion('ffmpeg version 6.1.1 Copyright'), '-filter_complex_script');
+  assert.equal(graphOptionForVersion('ffmpeg version n6.1 Copyright'), '-filter_complex_script');
+  assert.equal(graphOptionForVersion('ffmpeg version 9.0.2-full_build Copyright'), '-/filter_complex');
+  assert.equal(graphOptionForVersion('ffmpeg version N-118000-gabc123 Copyright'), '-/filter_complex');
+  assert.throws(() => graphOptionForVersion('unexpected version output'), /identify/);
 });

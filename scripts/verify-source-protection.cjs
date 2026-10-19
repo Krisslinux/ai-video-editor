@@ -19,14 +19,18 @@ const hash = () => createHash('sha256').update(readFileSync(source)).digest('hex
   project.assets.push(asset);
   project = applyBatch(project, { projectId: project.id, revision: project.revision, requestId: randomUUID(), operations: [{ type: 'addClip', assetId: asset.id, track: 'video' }] });
   writeFileSync(projectPath, JSON.stringify(project));
-  async function expectRejected(target) {
-    const before = hash();
+  async function runExport(target) {
     const child = spawn(require('electron'), ['.', `--project=${projectPath}`, `--export=${target}`], { cwd: root, windowsHide: true });
     let stderr = '';
     child.stderr.on('data', chunk => { stderr += chunk.toString(); });
     const timer = setTimeout(() => child.kill(), 20000);
     const exitCode = await new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
     clearTimeout(timer);
+    return { exitCode, stderr };
+  }
+  async function expectRejected(target) {
+    const before = hash();
+    const { exitCode, stderr } = await runExport(target);
     assert.equal(exitCode, 1, `Expected rejected export, got exit ${exitCode}: ${stderr.slice(-1000)}`);
     assert.match(stderr, /export path.*imported source file/i);
     assert.equal(hash(), before, 'Export changed the imported source');
@@ -42,5 +46,12 @@ const hash = () => createHash('sha256').update(readFileSync(source)).digest('hex
     writeFileSync(projectPath, JSON.stringify(project));
     await expectRejected(source);
   }
-  console.log(JSON.stringify({ sourceIntact: true, caseInsensitivePathRejected: process.platform === 'win32', symlinkAliasRejected: symlinkChecked }));
+  project.assets.push({ ...asset, id: randomUUID(), path: join(dir, 'removed-folder', 'unused.mp4'), name: 'unused.mp4' });
+  writeFileSync(projectPath, JSON.stringify(project));
+  const safeOutput = join(dir, 'safe-export.mp4');
+  const before = hash();
+  const { exitCode, stderr } = await runExport(safeOutput);
+  assert.equal(exitCode, 0, `Unused missing asset blocked export: ${stderr.slice(-1000)}`);
+  assert.equal(hash(), before);
+  console.log(JSON.stringify({ sourceIntact: true, caseInsensitivePathRejected: process.platform === 'win32', symlinkAliasRejected: symlinkChecked, unusedMissingAssetIgnored: true }));
 })().catch(error => { console.error(error); process.exitCode = 1; });

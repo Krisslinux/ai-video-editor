@@ -18,7 +18,11 @@ export function runTool(name: 'ffmpeg' | 'ffprobe', args: string[], signal?: Abo
     let stdout = '', stderr = '';
     child.stdout.on('data', b => { stdout += b; if (stdout.length > 16_000_000) child.kill(); });
     child.stderr.on('data', b => { stderr += b; if (stderr.length > 2_000_000) stderr = stderr.slice(-1_000_000); });
-    child.on('error', error => reject(new Error(`${name} is unavailable or failed to start: ${error.message}`)));
+    child.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.name === 'AbortError') reject(new Error(`${name} was cancelled`));
+      else if (error.code === 'ENOENT') reject(new Error(`${name} is not installed or not on PATH`));
+      else reject(new Error(`${name} failed to start${error.code ? ` (${error.code})` : ''}: ${error.message}`));
+    });
     child.on('close', code => code === 0 ? resolve(stdout) : reject(new Error(`${name} failed (${code}): ${stderr.slice(-1200)}`)));
   });
 }
@@ -44,6 +48,12 @@ export async function probe(path: string): Promise<Omit<Asset, 'id' | 'name' | '
   return { kind: video ? 'video' : 'audio', durationUs: Math.round(duration * 1_000_000), width: rotated ? video?.height : video?.width, height: rotated ? video?.width : video?.height, frameRate: video?.avg_frame_rate, sampleRate: audio?.sample_rate ? Number(audio.sample_rate) : undefined, channels: audio?.channels, hasAudio: Boolean(audio) };
 }
 const sec = (n: number) => (n / 1_000_000).toFixed(6);
+export function graphOptionForVersion(version: string) {
+  if (/^ffmpeg version N-/.test(version)) return '-/filter_complex';
+  const major = Number(version.match(/^ffmpeg version n?(\d+)/)?.[1]);
+  if (!Number.isInteger(major)) throw new Error('Could not identify the installed FFmpeg version');
+  return major >= 7 ? '-/filter_complex' : '-filter_complex_script';
+}
 const byId = (project: Project, clip: Clip) => {
   const asset = project.assets.find(a => a.id === clip.assetId);
   if (!asset || !existsSync(asset.path)) throw new Error(`Missing media: ${asset?.name ?? clip.assetId}`);
@@ -104,9 +114,7 @@ export async function render(project: Project, options: RenderOptions): Promise<
     const graphPath = join(graphDir, 'filters.txt');
     await writeFile(graphPath, filters.join(';'));
     const version = await runTool('ffmpeg', ['-version']);
-    const major = Number(version.match(/^ffmpeg version (?:n)?(\d+)/)?.[1]);
-    if (!Number.isInteger(major)) throw new Error('Could not identify the installed FFmpeg version');
-    const graphOption = major >= 7 ? '-/filter_complex' : '-filter_complex_script';
+    const graphOption = graphOptionForVersion(version);
     const args = ['-hide_banner', '-loglevel', 'error', '-nostdin', '-y', ...inputArgs, graphOption, graphPath, '-map', '[vout]', '-map', '[aout]', '-t', sec(length), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', options.output];
     if (process.platform === 'win32' && args.join(' ').length > 30_000) throw new Error('Too many distinct media paths for one Windows render');
     await runTool('ffmpeg', args, options.signal);
