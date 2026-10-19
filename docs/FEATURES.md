@@ -4,10 +4,10 @@ D = implemented in code with a repeatable check; P = partial/needs GUI or real-w
 
 | Group | Capability | Milestone | Status | Dependency / completion check |
 |---|---|---:|---|---|
-| A Projects/media | New/open/save/as, immutable media, multi-import, metadata | 1 | P | GUI import/save/reopen with two phone clips and separate audio |
+| A Projects/media | New/open/save/as, immutable media, multi-import, metadata | 1 | P | Unused import removal preserves source file in core check; GUI import/save/reopen with two phone clips and separate audio pending |
 | A Projects/media | Thumbnails, waveform, bins, proxies/cache, relink, collect assets, metadata fidelity | 1–2 | P | Thumbnail generated; remaining cache/relink/proxy and timebase checks |
 | A Projects/media | Autosave, crash recovery, progress, cancellation, resumable processing | 2 | P | Render cancellation exists; durable checkpoints/restart fixture needed |
-| B Manual/preview | Video/audio tracks, trim/split/reorder, gain/fade, Fit/Fill, undo/redo | 1 | P | Windows trim/undo/redo and Linux/Windows four-marker timing fixture pass; real media pending |
+| B Manual/preview | Video/audio tracks, trim/split/reorder/remove, gain/fade, Fit/Fill, undo/redo | 1 | P | Protected removal and ripple core checks pass; Windows trim/undo/redo and four-marker timing pass; real media pending |
 | B Manual/preview | Ripple/gaps, linked groups, zoom/snap/markers, keyframes, sequences, shortcuts | 2 | N | Interacting timeline and export agree |
 | B Manual/preview | Clip/property locks and before/after batch review | 1–2 | P | Indirect position lock test; GUI compare and selective decisions pending |
 | C Transcript/captions | Transcribe, text edit, cleanup, timed captions, styles, SRT/VTT | 2 | N | Timestamped speech fixture survives cuts/export |

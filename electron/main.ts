@@ -146,7 +146,7 @@ async function askModel(instruction: string): Promise<EditBatch> {
       method: 'POST', redirect: 'error', signal: controller.signal,
       headers: { 'Content-Type': 'application/json', ...(c.token ? { Authorization: `Bearer ${c.token}` } : {}) },
       body: JSON.stringify({ model: c.model, temperature: 0, response_format: { type: 'json_object' }, messages: [
-        { role: 'system', content: 'You edit a video project. Return ONLY a JSON object {"operations": [...]} using addClip, trimClip, splitClip, moveClip, setGain, setFade, setFit, setCanvas. Times are integer microseconds. Use only IDs in the project. Never set locks or invent assets. Preserve user-protected clips. Do not claim completion of unsupported requests.' },
+        { role: 'system', content: 'You edit a video project. Return ONLY a JSON object {"operations": [...]} using addClip, removeClip, trimClip, splitClip, moveClip, setGain, setFade, setFit, setCanvas. Times are integer microseconds. Use only IDs in the project. Never set locks, remove assets, or invent assets. Preserve user-protected clips. Do not claim completion of unsupported requests.' },
         { role: 'user', content: JSON.stringify({ instruction, project: manifest }) }
       ] })
     });

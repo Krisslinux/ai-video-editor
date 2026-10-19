@@ -1,6 +1,6 @@
 # AI Video Editor
 
-An open-source, local-first desktop editor (early development). The current vertical slice imports video and separate audio, arranges clips on tracks, trims/splits/reorders video, adjusts gain/fades/framing, renders an accurate preview, saves/reopens projects, undoes/redoes edits, proposes validated edits through a configured OpenAI-compatible chat-completions endpoint, reviews a proposed batch, and exports MP4. It is not yet a full creator suite or a verified installer.
+An open-source, local-first desktop editor (early development). The current vertical slice imports video and separate audio, arranges and removes clips on tracks, removes unused imports without deleting source files, trims/splits/reorders video, adjusts gain/fades/framing, renders a preview, saves/reopens projects, undoes/redoes edits, proposes validated edits through a configured OpenAI-compatible chat-completions endpoint, reviews a proposed batch, and exports MP4. A local unsigned Windows installer has been exercised on the connected development account; clean-machine and release checks remain pending.
 
 ## Run from source
 
@@ -17,7 +17,7 @@ Use **Import media**, add two videos and one audio file to the timeline, then **
 For scripted opening of a trusted project file, run `npm start -- --project=/absolute/path/project.ave.json` (quote the path when it has spaces). The same schema validation applies.
 For a non-interactive render through the same export path, pass `--export=/absolute/path/output.mp4` alongside `--project`. It finalizes only after probing the output.
 
-For checks: `npm run typecheck`, `npm test` (after `npm run build`), `npm run verify:loop`, `npm run verify:sync`, and `npm run verify:phone`. The render fixtures check output geometry, clip order, separate-track/source-audio flash/click timing after a trim and join, and a synthetic variable-frame-rate portrait clip with 90° display rotation. Fixtures are ignored by Git.
+For checks: `npm run typecheck`, `npm test`, `npm run verify:loop`, `npm run verify:sync`, and `npm run verify:phone`. The render fixtures check output geometry, clip order, separate-track/source-audio flash/click timing after a trim and join, and a synthetic variable-frame-rate portrait clip with 90° display rotation. Fixtures are ignored by Git.
 
 On Windows, `npm run verify:telemetry` launches Electron against a local receiver and verifies that opt-in diagnostics are redacted and offline/opt-out states send no event. `npm run verify:source-protection` checks that a command line export cannot overwrite an imported source, even with a differently cased path. These checks use no external Sentry project or personal media.
 After `npm run verify:loop` creates a saved synthetic project, `npm run verify:ai` exercises a loopback OpenAI-compatible proposal, validation, before/after preview, and accept flow without an external model or token.

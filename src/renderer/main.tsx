@@ -44,6 +44,7 @@ function App() {
   useEffect(() => { setWidth(project.canvas.width); setHeight(project.canvas.height); }, [project.canvas.width, project.canvas.height]);
   const clip = [...project.video, ...project.audio].find(c => c.id === selected);
   const asset = clip && project.assets.find(a => a.id === clip.assetId);
+  const usedAssets = new Set([...project.video, ...project.audio].map(c => c.assetId));
   const length = projectDurationUs(project);
   useEffect(() => {
     setGainDraft(clip?.gain ?? 1);
@@ -104,7 +105,10 @@ function App() {
         {project.assets.length === 0 && <div className="empty">Import video clips and a separate audio track to begin.</div>}
         <div className="assets">{project.assets.map(a => <div className="asset" key={a.id}>
           <div className="asset-icon">{a.kind === 'video' ? <img src={`editor-media://thumb/${a.id}`} alt=""/> : 'AUD'}</div><div className="asset-info"><strong title={a.path}>{a.name}</strong><small>{seconds(a.durationUs)}s · {a.kind === 'video' ? `${a.width} × ${a.height}` : `${a.sampleRate ?? '?'} Hz`}</small></div>
+          <div className="asset-actions">
           <button disabled={busy} title={`Add ${a.name} to timeline`} aria-label={`Add ${a.name} to timeline`} onClick={() => edit([{ type: 'addClip', assetId: a.id, track: a.kind }])}>Add</button>
+          <button disabled={busy || usedAssets.has(a.id)} title={usedAssets.has(a.id) ? 'Remove its timeline clips first' : 'Remove from this project; the source file stays on disk'} aria-label={`Remove ${a.name} from project${usedAssets.has(a.id) ? ' after removing its timeline clips' : ''}`} onClick={() => void execute('Remove imported media', () => window.editor.edit({ projectId: project.id, revision: project.revision, requestId: crypto.randomUUID(), operations: [{ type: 'removeAsset', assetId: a.id }] }), s => { receive(s); return 'Removed from project. Source file untouched; Undo restores it.'; })}>Remove</button>
+          </div>
         </div>)}</div>
       </aside>
       <section className="center">
@@ -126,6 +130,7 @@ function App() {
               <button onClick={() => edit([{ type: 'trimClip', clipId: clip.id, sourceInUs: clip.sourceInUs + 1_000_000, sourceOutUs: clip.sourceOutUs }])}>Trim 1s start</button>
               <button onClick={() => edit([{ type: 'trimClip', clipId: clip.id, sourceInUs: clip.sourceInUs, sourceOutUs: clip.sourceOutUs - 1_000_000 }])}>Trim 1s end</button>
               <button onClick={() => edit([{ type: 'splitClip', clipId: clip.id, atUs: Math.floor(durationUs(clip) / 2) }])}>Split in half</button>
+              <button disabled={busy || Object.values(clip.locks).some(Boolean)} title="Remove this clip from the timeline; the imported source stays in the library" onClick={() => void execute('Remove clip', () => window.editor.edit({ projectId: project.id, revision: project.revision, requestId: crypto.randomUUID(), operations: [{ type: 'removeClip', clipId: clip.id }] }), s => { receive(s); setSelected(undefined); return 'Clip removed from timeline. Undo restores it.'; })}>Remove clip</button>
               {project.video.some(c => c.id === clip.id) && <><button onClick={() => edit([{ type: 'moveClip', clipId: clip.id, index: Math.max(0, project.video.findIndex(c => c.id === clip.id) - 1) }])}>Move left</button><button onClick={() => edit([{ type: 'moveClip', clipId: clip.id, index: Math.min(project.video.length - 1, project.video.findIndex(c => c.id === clip.id) + 1) }])}>Move right</button></>}
             </div><div className="controls"><label>Gain <input aria-label="Clip gain" type="range" min="0" max="2" step="0.05" disabled={busy} value={gainDraft} onChange={e => setGainDraft(Number(e.target.value))} onPointerUp={e => commitDraft('gain', Number(e.currentTarget.value))} onBlur={e => commitDraft('gain', Number(e.currentTarget.value))} onKeyDown={e => { if (e.key === 'Enter') { commitDraft('gain', Number(e.currentTarget.value)); e.currentTarget.blur(); } }}/>{Math.round(gainDraft * 100)}%</label>
               <label>Fade out (s) <input aria-label="Fade out seconds" type="number" min="0" step="0.25" max={seconds(durationUs(clip))} disabled={busy} value={fadeDraft} onChange={e => setFadeDraft(e.target.value)} onPointerUp={e => commitDraft('fade', Number(e.currentTarget.value))} onBlur={e => commitDraft('fade', Number(e.currentTarget.value))} onKeyDown={e => { if (e.key === 'Enter') { commitDraft('fade', Number(e.currentTarget.value)); e.currentTarget.blur(); } }}/></label>

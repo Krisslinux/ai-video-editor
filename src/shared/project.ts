@@ -6,6 +6,8 @@ export type Clip = { id: string; assetId: string; sourceInUs: number; sourceOutU
 export type Project = { schemaVersion: 1; id: string; revision: number; name: string; canvas: { width: number; height: number; frameRate: 30 }; assets: Asset[]; video: Clip[]; audio: Clip[] };
 export type Operation =
   | { type: 'addClip'; assetId: string; track: 'video' | 'audio'; startUs?: number }
+  | { type: 'removeClip'; clipId: string }
+  | { type: 'removeAsset'; assetId: string }
   | { type: 'trimClip'; clipId: string; sourceInUs: number; sourceOutUs: number }
   | { type: 'splitClip'; clipId: string; atUs: number }
   | { type: 'moveClip'; clipId: string; index: number }
@@ -64,6 +66,19 @@ export function applyBatch(project: Project, batch: EditBatch): Project {
         const startUs = op.track === 'video' ? projectDurationUs(next) : (op.startUs ?? 0);
         assert(validTime(startUs), 'Invalid clip placement');
         next[op.track].push({ id: crypto.randomUUID(), assetId: asset.id, sourceInUs: 0, sourceOutUs: asset.durationUs, startUs, gain: op.track === 'audio' ? 0.35 : 1, fadeOutUs: 0, fit: 'fit', locks: {} });
+        break;
+      }
+      case 'removeAsset': {
+        const index = next.assets.findIndex(a => a.id === op.assetId);
+        assert(index >= 0, 'Unknown asset');
+        assert(![...next.video, ...next.audio].some(c => c.assetId === op.assetId), 'Remove clips using this media before removing it from the project');
+        next.assets.splice(index, 1);
+        break;
+      }
+      case 'removeClip': {
+        const { track, index } = findClip(next, op.clipId);
+        next[track].splice(index, 1);
+        if (track === 'video') repackVideo(next);
         break;
       }
       case 'trimClip': {
