@@ -63,6 +63,11 @@ export type RenderOptions = { width: number; height: number; output: string; sig
 export async function render(project: Project, options: RenderOptions): Promise<void> {
   if (!project.video.length) throw new Error('Add a video clip before rendering');
   if (options.width % 2 || options.height % 2 || options.width < 2 || options.height < 2) throw new Error('Invalid output dimensions');
+  let videoEnd = 0;
+  for (const clip of project.video) {
+    if (clip.startUs !== videoEnd) throw new Error('Video clips must be contiguous before rendering');
+    videoEnd += durationUs(clip);
+  }
   const length = projectDurationUs(project);
   const inputArgs: string[] = [], filters: string[] = [], videoNames: string[] = [], audioNames: string[] = [];
   const sources = new Map<string, { asset: Asset; index: number; video: string[]; audio: string[]; videoUsed: number; audioUsed: number }>();

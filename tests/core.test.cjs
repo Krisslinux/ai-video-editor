@@ -5,7 +5,7 @@ const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { newProject, applyBatch, setUserLock, projectDurationUs, validateProject } = require('../dist-main/src/shared/project.js');
 const { tokenForEndpoint } = require('../dist-main/src/shared/connection.js');
-const { graphOptionForVersion } = require('../dist-main/electron/media.js');
+const { graphOptionForVersion, render } = require('../dist-main/electron/media.js');
 const id = () => crypto.randomUUID();
 function sample() { let p = newProject(); p.assets = [{ id: 'a', name: 'a.mp4', path: '/not-needed-for-core', kind: 'video', durationUs: 3_000_000, hasAudio: true }]; return p; }
 test('a batch is atomic and stale revisions cannot commit', () => {
@@ -97,6 +97,12 @@ test('opened projects reject corrupt assets, track placement, gaps, and duplicat
     assert.throws(() => validateProject(corrupted), error);
   }
   assert.deepEqual(validateProject(JSON.parse(JSON.stringify(p))), p);
+});
+test('renderer rejects unsupported video gaps before touching media', async () => {
+  let p = sample();
+  p = applyBatch(p, { projectId: p.id, revision: p.revision, requestId: id(), operations: [{ type: 'addClip', assetId: 'a', track: 'video' }] });
+  p.video[0].startUs = 1_000_000;
+  await assert.rejects(render(p, { width: 1280, height: 720, output: '/unused-render.mp4' }), /contiguous/);
 });
 test('stored AI token is reused only for the same endpoint origin', () => {
   const previous = { endpoint: 'https://provider.example/v1', token: 'private-A' };
