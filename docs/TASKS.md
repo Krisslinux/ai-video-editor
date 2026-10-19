@@ -1,29 +1,23 @@
-# Tasks
+# Ordered milestones
 
-Statuses: done, in progress, pending, blocked. Completion checks are evidence, not intention.
+Statuses: done, partial, pending, blocked. Completion means the observable check actually ran.
 
-## Foundation
+| Stage | Task | Status | Check / dependency |
+|---|---|---|---|
+| 0 | Fresh branch, pinned Electron/React/TS stack, lockfile, shell and typed core | Done | Linux build and typecheck |
+| 0 | Narrow IPC, FFmpeg discovery, project atomic save | Partial | Windows desktop launched; project saved/reopened; native dialogs still pending |
+| 0 | CI and packaging command | Partial | Windows local unsigned NSIS rebuilt from `c6b484a` and upgraded with third-party GPLv3 media tools; clean machine, source distribution review, signing, and hosted CI still pending |
+| 1 | Import two clips + audio; manual trim/split/order/remove/gain; undo/redo | Partial | Windows installed UI removed a clip and unused import, then restored them with Undo; source file intact; import failures/cancel now have visible feedback, with native dialog and real footage pending |
+| 1 | Fit/Fill, ratio presets/custom even dimensions, preview/export | Partial | Linux/Windows H.264 export/preview, flash/click offsets, and synthetic VFR/rotation checked; real footage pending |
+| 1 | Initial locks, whole-batch before/after, quality warnings | Partial | Eleven core tests include lock/removal and malformed-project checks; before/after AI stub and preview cleanup pass; warning UI fixtures pending |
+| 1 | Live AI edit with compatible provider | Partial | Windows loopback compatible-response stub exercised reject/stage/compare/apply/idempotency in offline mode; no installed Ollama model or live provider configured |
+| 1 | Windows installer with bundled tools and clean-install test | Partial | Unsigned 243 MB NSIS from `c6b484a` upgraded on connected account; installed removal UI, bundled export, and Sentry/media preview pass; clean normal-user machine and release review pending |
+| 1 | Offline manual loop, real phone footage, creator pilot templates | Partial | Offline dispatch gate and pilot template; external-network test/footage pending |
+| 1 | Opt-in diagnostic delivery and redaction | Partial | Windows loopback redaction/opt-out/offline/re-enable cycle passes; saved UI preference exists; restart behavior and external Sentry delivery pending |
+| 1B | Eligible ChatGPT account flow, MCP hosts, model discovery, local adapters and enforced budgets | Pending | Official route/client compatibility and credentials |
+| 2 | Transcript/captions/cleanup/ducking; selective review, full locks, quality analysis, durable jobs/interchange | Pending | Core editor baseline |
+| 3 | Storyboard, reference analysis, B-roll, graphics, TTS and description-to-video | Pending | Media/AI capability adapters |
+| 4 | Auto alignment, beat/reframe, cleanup, dubbing, optional generation/lip-sync | Pending | Models, licenses, fixtures, hardware |
+| 5 | Safe updates, long-project performance, macOS/Linux, signed releases | Pending | Installer and project migration baseline |
 
-- [x] Identify the repository and inspect main: initial README, .gitignore, and MIT LICENSE only (2026-10-15).
-- [x] Commit shared records on setup/development-foundation and open [draft PR #1](https://github.com/Krisslinux/ai-video-editor/pull/1). Commit 4680d9af9083ad51fe11273d8c7f33b4fde3fc6b contains 11 intended changed files; branch diff was inspected.
-- [x] Confirm existing MIT license with owner and record the decision in PROJECT.md (2026-10-15).
-- [ ] Review dependency obligations before adopting a stack. Check: record license and packaging decisions for selected dependencies; no stack dependency has been adopted yet.
-- [x] Research Descript's documented AI editing workflow and write an isolated disposable-project test protocol in docs/research/descript.md (2026-10-15). These are vendor statements, not live observations.
-- [ ] Run REA diagnostics and three isolated Descript edits in a disposable project. Check: app/version/hash, REA Evidence IDs, before/after timeline and preview, undo/redo, export sync measurements, and local/cloud limits in docs/research/descript.md. Blocked: local command and UI runtimes fail before startup.
-- [x] Enable CodeRabbit for this repository's PRs. Its bot loaded .coderabbit.yaml and completed a review on draft PR #1 with two documentation findings; both are addressed on the setup branch.
-- [ ] Create a runnable minimal scaffold and add Windows/macOS/Linux checks for actual commands. Check: commands run locally where possible and CI results are recorded by platform.
-- [ ] Add Sentry to the runnable app with strict scrubbing. Check: a safe test event arrives without credentials, media, prompts, or transcript text.
-- [x] Link the Git plan/tasks from the [private Notion project page](https://app.notion.com/p/3fa677d871be81f78d69e1cb4a9acca1). Page was fetched after update; Git remains authoritative.
-
-## First product milestone
-
-- [ ] Import two short clips and an audio track. Check: metadata and media references persist across reopen.
-- [ ] Request one AI edit plan and validate a bounded timeline operation. Check: unsupported model capabilities and invalid edits fail clearly.
-- [ ] Show timeline, preview, manual correction, and undo. Check: the same edit appears in preview and edit history.
-- [ ] Export MP4 using a CPU path. Check: on a 30 fps flash/click fixture, decoded output has correct frame order and audio content, duration differs from the plan by no more than one output frame, and absolute audio-to-video marker offset is at most 20 ms near both start and end.
-
-## Later milestones
-
-- [ ] Expand transcript editing, captions, transitions, and effects.
-- [ ] Add creation workflow, generated visuals sandbox, and optional speech/music models.
-- [ ] Evaluate local models and hardware acceleration on supported hardware.
+Next: reconnect RDP and check real phone video and separate microphone audio through Windows native import/export when supplied; rerun CodeRabbit and Sentry loopback checks there. Then test installation/uninstallation on a clean normal-user machine. Review complete FFmpeg source distribution and signing before any release. Verify a live model and external Sentry delivery when configured. Hosted CI and installed export status UI remain to be checked.

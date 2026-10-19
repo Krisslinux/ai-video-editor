@@ -1,0 +1,3 @@
+# Contributing
+
+Clone, `npm ci`, `npm run build`, `npm test`, `npm run typecheck`, and `npm run verify:loop` with FFmpeg/ffprobe installed. The project core is `src/shared/project.ts`, desktop boundary `electron/main.ts`, media filters `electron/media.ts`, and UI `src/renderer/`. Use a small branch and draft PR with reproduction steps and measured validation. Keep private media, credentials, prompts, caches, generated outputs, and target-app research binaries out of commits. Good first tasks: a fixture for portrait Fit/Fill, recoverable missing-media UI, and thumbnail regeneration after reopen. Report security findings privately as in SECURITY.md.

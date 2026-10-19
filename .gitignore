@@ -155,3 +155,10 @@ research-artifacts/
 *.asar
 *.har
 *.saz
+
+# Build and generated local media
+dist/
+dist-main/
+release/
+node_modules/
+vendor/ffmpeg/
