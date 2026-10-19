@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Asset, Clip, EditBatch, Operation, Project, durationUs, newProject, projectDurationUs, seconds } from '../shared/project';
 import './style.css';
 
-type State = { project: Project; projectPath?: string; previewUrl?: string; errors?: string[] };
+type State = { project: Project; projectPath?: string; previewUrl?: string; errors?: string[]; imported?: number; canceled?: boolean };
 type Settings = { offline: boolean; telemetry: boolean; telemetryAvailable: boolean; connection?: { endpoint: string; model: string; hasToken: boolean; allowUnbounded: boolean } };
 type API = {
   state(): Promise<State>; health(): Promise<{ ready: boolean; message: string }>; newProject(): Promise<State>; importMedia(): Promise<State>; edit(batch: EditBatch): Promise<State>;
@@ -36,6 +36,7 @@ function App() {
   const [token, setToken] = useState('');
   const [allowUnbounded, setAllowUnbounded] = useState(false);
   const [report, setReport] = useState<string[]>();
+  const [importIssues, setImportIssues] = useState<string[]>([]);
   const [gainDraft, setGainDraft] = useState(1);
   const [fadeDraft, setFadeDraft] = useState('0');
   const pendingDraft = useRef<string | undefined>(undefined);
@@ -62,7 +63,14 @@ function App() {
     catch (error) { setStatus(`${label}: ${error instanceof Error ? error.message : String(error)}`); }
     finally { setBusy(false); }
   }
-  function receive(s: State) { setState(s); setProposal(undefined); setComparison(undefined); setReport(undefined); if (s.errors?.length) setStatus(s.errors.join(' | ')); }
+  function receive(s: State) { setState(s); setProposal(undefined); setComparison(undefined); setReport(undefined); setImportIssues([]); }
+  function finishImport(s: State) {
+    receive(s);
+    setImportIssues(s.errors ?? []);
+    if (s.canceled) return 'Import canceled';
+    const count = s.imported ?? 0;
+    return s.errors?.length ? `Imported ${count}; ${s.errors.length} file(s) could not be imported.` : `Imported ${count} file(s).`;
+  }
   function edit(operations: Operation[]) { void execute('Edit', () => window.editor.edit({ projectId: project.id, revision: project.revision, requestId: crypto.randomUUID(), operations }), receive); }
   function commitDraft(kind: 'gain' | 'fade', value: number) {
     if (!clip || busy || !Number.isFinite(value)) return;
@@ -100,8 +108,9 @@ function App() {
     </header>
     <main className="workspace">
       <aside className="library panel">
-        <div className="panel-heading"><div><small>PROJECT</small><h2>Media library</h2></div><button className="accent" disabled={busy} onClick={() => void execute('Import', window.editor.importMedia, receive)}>Import media</button></div>
+        <div className="panel-heading"><div><small>PROJECT</small><h2>Media library</h2></div><button className="accent" disabled={busy} onClick={() => void execute('Import', window.editor.importMedia, finishImport)}>Import media</button></div>
         <p className="hint">Video and audio stay on your computer unless you use an AI connection.</p>
+        {importIssues.length > 0 && <div className="import-issues" role="alert"><strong>{importIssues.length} file(s) could not be imported</strong><ul>{importIssues.map((issue, i) => <li key={i}>{issue}</li>)}</ul><p>Check that each file is accessible and uses a supported format, then try importing it again.</p></div>}
         {project.assets.length === 0 && <div className="empty">Import video clips and a separate audio track to begin.</div>}
         <div className="assets">{project.assets.map(a => <div className="asset" key={a.id}>
           <div className="asset-icon">{a.kind === 'video' ? <img src={`editor-media://thumb/${a.id}`} alt=""/> : 'AUD'}</div><div className="asset-info"><strong title={a.path}>{a.name}</strong><small>{seconds(a.durationUs)}s · {a.kind === 'video' ? `${a.width} × ${a.height}` : `${a.sampleRate ?? '?'} Hz`}</small></div>

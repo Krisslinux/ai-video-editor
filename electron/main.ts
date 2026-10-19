@@ -274,7 +274,7 @@ handle('health', () => discoverMediaTools());
 handle('new-project', () => { projectPath = undefined; undoStack = []; redoStack = []; project = newProject(); invalidatePreview(); processed.clear(); return payload(); });
 handle('import-media', async () => {
   const result = await dialog.showOpenDialog(window, { properties: ['openFile', 'multiSelections'], filters: [{ name: 'Media', extensions: ['mp4', 'mov', 'mkv', 'webm', 'mp3', 'wav', 'm4a', 'aac'] }] });
-  if (result.canceled) return payload();
+  if (result.canceled) return { ...payload(), canceled: true };
   const next = structuredClone(project);
   const errors: string[] = [];
   await mkdir(join(app.getPath('userData'), 'thumbnails'), { recursive: true });
@@ -286,8 +286,9 @@ handle('import-media', async () => {
     }
     catch (error) { errors.push(`${basename(path)}: ${String(error)}`); }
   }
-  if (next.assets.length !== project.assets.length) { next.revision++; change(next); }
-  return { ...payload(), errors };
+  const imported = next.assets.length - project.assets.length;
+  if (imported) change(next);
+  return { ...payload(), errors, imported };
 });
 handle('edit', (_event, batch: EditBatch) => { commit(batch); return payload(); });
 handle('lock', (_event, id: string, property: 'content' | 'timing' | 'position' | 'gain', value: boolean) => { change(setUserLock(project, id, property, value)); return payload(); });
