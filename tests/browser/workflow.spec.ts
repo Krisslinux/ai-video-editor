@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import path from 'node:path';
 test('real upload, render, portrait revision, restore and download',async({page},testInfo)=>{
  const account=await page.request.post('/api/auth/register',{data:{email:`browser-${Date.now()}-${testInfo.project.name}@example.test`,password:'browser-test-fixture-only'}});expect(account.ok()).toBeTruthy();
- await page.goto('/');await page.getByRole('button',{name:/Clips & images/}).click();
+ await page.goto('/');await page.getByRole('button',{name:/Clips & images/}).click();await page.getByRole('button',{name:'More options',exact:true}).click();await page.getByLabel('Editing engine').selectOption('automatic');
  await page.getByLabel('Choose videos or images').setInputFiles([path.resolve('test-data/fixtures/clip-a.mp4'),path.resolve('test-data/fixtures/clip-b.mp4')]);
  await expect(page.getByRole('button',{name:'Create my video'})).toBeEnabled();
  await page.getByLabel('Choose audio files').setInputFiles(path.resolve('test-data/fixtures/music.wav'));
@@ -21,7 +21,7 @@ test('real upload, render, portrait revision, restore and download',async({page}
 
 test('images alone become a downloadable video with selected hold times',async({page},testInfo)=>{
  const account=await page.request.post('/api/auth/register',{data:{email:`images-${Date.now()}-${testInfo.project.name}@example.test`,password:'browser-image-fixture-only'}});expect(account.ok()).toBeTruthy();
- await page.goto('/');await page.getByRole('button',{name:/Clips & images/}).click();
+ await page.goto('/');await page.getByRole('button',{name:/Clips & images/}).click();await page.getByRole('button',{name:'More options',exact:true}).click();await page.getByLabel('Editing engine').selectOption('automatic');
  await page.getByLabel('Choose images',{exact:true}).setInputFiles(['photo-red.jpg','photo-green.png','photo-blue.webp'].map(n=>path.resolve('test-data/fixtures',n)));
  for(const [name,seconds]of [['photo-red.jpg','1.5'],['photo-green.png','2'],['photo-blue.webp','2.5']]){const input=page.getByLabel(`Display duration for ${name} in seconds`);await expect(input).toBeVisible();await input.fill(seconds);await input.press('Tab');}
  await expect(page.getByRole('button',{name:'Create my video'})).toBeEnabled();await page.getByRole('button',{name:'Create my video'}).click();

@@ -55,3 +55,7 @@ Read [deployment](docs/DEPLOYMENT.md), [architecture](docs/ARCHITECTURE.md), [AI
 ### Lyric videos
 
 Song-only projects support word-timestamp transcription, a reviewable cue editor, LRC/JSON/timestamp-table imports, ten color palettes, seven botanical motion variants, and deterministic native H.264/AAC export. Songs are limited to eight minutes. Native workers now require `@napi-rs/canvas` and the bundled `public/fonts` directory. Run `npm run test:lyrics` for the synthetic timing/adapter integration test. Live singing transcription and real-device UI QA are not yet verified; review and correct lyrics before exporting. See `HANDOFF.md` for the workflow and limits.
+
+### Personal custom-provider configuration
+
+Use **API settings → Save & test** before API editing or automatic lyrics. The saved token is encrypted and tested against the exact configured model and protocol. Editing, image input and audio word timing have separate results; unsupported features stay blocked. The website is a personal private workspace, with new projects defaulting to API editing. Chat-only provider access does not establish song transcription capability. See `docs/PROCESSOR.md` for a continuously running server service.

@@ -14,4 +14,4 @@ export type Quality={durationMs:number;width:number;height:number;frames:number;
 export type Revision={id:string;number:number;createdAt:number;instruction:string;plan:Plan;quality:Quality};
 export type Job={id:string;projectId:string;status:'queued'|'running'|'ready'|'error'|'canceled';stage:string;progress:number|null;error?:string;createdAt:number};
 export type Project={id:string;name:string;settings:Settings;instruction:string;createdAt:number;updatedAt:number;currentRevision:string|null;assets:Asset[];revisions:Revision[];job:Job|null;providerCalls:number};
-export type Connection={protocol:'openai'|'anthropic';baseUrl:string;model:string;vision:boolean;transcriptionModel:string;hasKey:boolean;configured:boolean;maxCalls:number};
+export type Connection={test?:import('./connection.ts').ConnectionTest;protocol:'openai'|'anthropic';baseUrl:string;model:string;vision:boolean;transcriptionModel:string;hasKey:boolean;configured:boolean;maxCalls:number};

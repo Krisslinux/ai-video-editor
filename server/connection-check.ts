@@ -1,0 +1,19 @@
+import {fileURLToPath} from 'node:url';
+import {createCanvas} from '@napi-rs/canvas';
+import {planWithAI,transcribeWords,providerRequest} from './provider.ts';
+import {validatePlan} from './plan.ts';
+import {defaults} from '../shared/types.ts';
+import type {Asset,Connection} from '../shared/types.ts';
+import type {Capability} from '../shared/connection.ts';
+type Post=(endpoint:string,body:unknown,signal?:AbortSignal)=>Promise<any>;
+export async function checkConnection(payload:any,root:string,post:Post,signal:AbortSignal){
+ const c:Connection&{token:string}=payload.connection,endpoint=`connection-tests/${payload.connectionTest.id}/`;
+ const run=async(capability:Capability,fn:()=>Promise<void>)=>{await post(endpoint+'begin',{capability},signal);try{await fn();await post(endpoint+'result',{capability,status:'passed',detail:capability==='editing'?'The selected model returned a valid edit plan.':capability==='vision'?'The selected model correctly read a generated image.':'The audio model recognized a spoken sample and returned ordered word timestamps.'},signal);}catch(e){await post(endpoint+'result',{capability,status:'failed',detail:e instanceof Error?e.message.slice(0,500):'Provider check failed.'},signal);}};
+ const fixture:Asset={id:'connection-sample',projectId:'connection-check',name:'Synthetic test clip',kind:'video',role:'auto',size:1,offset:1,status:'ready',durationMs:1000,width:640,height:360,hasAudio:false,protected:false,createdAt:0};
+ await run('editing',async()=>{const plan=await planWithAI({...c,vision:false},[fixture],defaults,'',undefined,new Map(),signal,async(_kind,fn)=>fn());validatePlan(plan,[fixture],defaults);});
+ if(c.vision)await run('vision',async()=>{const canvas=createCanvas(64,64),ctx=canvas.getContext('2d');ctx.fillStyle='#ff0000';ctx.fillRect(0,0,64,64);const b64=(await canvas.encode('png')).toString('base64');const image=c.protocol==='anthropic'?{type:'image',source:{type:'base64',media_type:'image/png',data:b64}}:{type:'image_url',image_url:{url:'data:image/png;base64,'+b64}};const result=await providerRequest(c.baseUrl,c.protocol==='anthropic'?'/messages':'/chat/completions',c.token,c.protocol,{model:c.model,max_tokens:256,messages:[{role:'user',content:[{type:'text',text:'What single color fills this image? Reply with only the English color name.'},image]}]},signal);const text=c.protocol==='anthropic'?result.content?.filter((x:any)=>x.type==='text').map((x:any)=>x.text).join(''):result.choices?.[0]?.message?.content;if(typeof text!=='string'||!/^red[.!\s]*$/i.test(text.trim()))throw Error('Image input did not return the expected result. Disable image input or choose another model.');});
+ else await post(endpoint+'result',{capability:'vision',status:'not-configured',detail:'Image input is disabled.'},signal);
+ if(c.transcriptionModel)await run('lyrics',async()=>{const file=fileURLToPath(new URL('../public/connection-check.wav',import.meta.url));const cues=await transcribeWords(c,file,3600,signal,async(_kind,fn)=>fn(),'connection-check.wav');const text=cues.map(c=>c.text).join(' ').toLowerCase().replace(/[^a-z ]/g,'');if(!/amber/.test(text)||!/river/.test(text)||!/opens/.test(text))throw Error('The audio response did not recognize the test phrase. Check the transcription model and audio endpoint.');});
+ else await post(endpoint+'result',{capability:'lyrics',status:'not-configured',detail:'No audio transcription model is configured. Chat model access does not establish audio support.'},signal);
+ await post(endpoint+'complete',{},signal);
+}

@@ -1,0 +1,27 @@
+[Unit]
+Description=Frameflow personal video processor
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=frameflow
+Group=frameflow
+WorkingDirectory=/opt/frameflow
+Environment=NODE_ENV=production
+Environment=WORKER_DATA_DIR=/var/lib/frameflow
+EnvironmentFile=/etc/frameflow/processor.env
+ExecStart=/usr/bin/node --import tsx server/worker.ts
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/frameflow
+
+[Install]
+WantedBy=multi-user.target

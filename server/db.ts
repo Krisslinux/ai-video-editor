@@ -14,7 +14,19 @@ CREATE INDEX IF NOT EXISTS job_queue ON jobs(status,created_at);
 CREATE TABLE IF NOT EXISTS connections(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,data TEXT NOT NULL,secret TEXT);
 CREATE TABLE IF NOT EXISTS usage(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,user_id TEXT NOT NULL,job_id TEXT NOT NULL,kind TEXT NOT NULL,status TEXT NOT NULL,units INTEGER,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS locks(id TEXT PRIMARY KEY,owner TEXT NOT NULL,expires_at INTEGER NOT NULL);
-INSERT OR IGNORE INTO migrations VALUES(1,unixepoch()*1000);`);
+CREATE TABLE IF NOT EXISTS connection_tests (
+ id TEXT PRIMARY KEY,
+ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ revision TEXT NOT NULL,
+ status TEXT NOT NULL,
+ data TEXT NOT NULL,
+ created_at INTEGER NOT NULL,
+ updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS connection_tests_user ON connection_tests(user_id, created_at);
+
+INSERT OR IGNORE INTO migrations VALUES(1,unixepoch()*1000);
+INSERT OR IGNORE INTO migrations VALUES(2,unixepoch()*1000);`);
 export const one=(sql:string,...args:any[])=>db.prepare(sql).get(...args) as Record<string,any>|undefined;
 export const all=(sql:string,...args:any[])=>db.prepare(sql).all(...args) as Record<string,any>[];
 export const run=(sql:string,...args:any[])=>db.prepare(sql).run(...args);

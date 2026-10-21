@@ -1,3 +1,4 @@
+import {checkConnection} from './connection-check.ts';
 import {createReadStream,createWriteStream} from 'node:fs';
 import {mkdir,readFile,writeFile,rename,rm,stat} from 'node:fs/promises';
 import {Readable} from 'node:stream';
@@ -13,6 +14,7 @@ import {isVisual} from '../shared/types.ts';
 import type {Asset,Plan} from '../shared/types.ts';
 const base=(process.env.WORKER_API_URL||'http://127.0.0.1:3001').replace(/\/$/,'');
 const token=process.env.WORKER_TOKEN||'development-worker-token';
+if(process.env.NODE_ENV==='production'&&(!process.env.WORKER_API_URL||!process.env.WORKER_TOKEN||process.env.WORKER_TOKEN==='development-worker-token'))throw Error('Production processor requires an explicit API URL and processor secret.');
 const root=path.resolve(process.env.WORKER_DATA_DIR||process.env.DATA_DIR||'data','worker-cache');await mkdir(root,{recursive:true,mode:0o700});
 const workerId=randomUUID();let stopping=false;let current:AbortController|undefined;
 async function api(endpoint:string,init:RequestInit={},signal?:AbortSignal){const timeout=AbortSignal.timeout(endpoint==='claim'?15000:120000);const requestSignal=signal?AbortSignal.any([signal,timeout]):timeout;const response=await fetch(base+'/api/worker/'+endpoint,{...init,headers:{authorization:`Bearer ${token}`,'x-worker-id':workerId,...(process.env.SITES_SERVICE_TOKEN?{'OAI-Sites-Authorization':`Bearer ${process.env.SITES_SERVICE_TOKEN}`} :{}),...init.headers},signal:requestSignal});if(!response.ok){let message='Worker request failed.';try{message=(await response.json()).error||message;}catch{}throw Error(message);}return response;}
@@ -37,16 +39,16 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
   if(job.settings.lyrics){
    const settings=job.settings.lyrics;const song=assets.find(a=>a.id===settings.songId&&a.kind==='audio'&&a.status==='ready');if(!song)throw Error('Choose an analyzed song.');let cues=settings.cues,timing=settings.timing,suggestion=(song.analysis as any)?.lyrics?.themeSuggestion;
    if(settings.source==='auto'){
-    if(!connection||connection.protocol!=='openai'||!connection.transcriptionModel)throw Error('Configure a word-timestamp transcription connection.');
-    const fingerprint=createHash('sha256').update(JSON.stringify({url:connection.baseUrl,model:connection.transcriptionModel,size:song.size,words:1})).digest('hex');let cached=(song.analysis as any)?.lyrics;
+    if(!connection||!connection.transcriptionModel)throw Error('Configure a word-timestamp transcription connection.');
+    const fingerprint=createHash('sha256').update(JSON.stringify({url:connection.baseUrl,model:connection.transcriptionModel,size:song.size,revision:connection.revision,words:1})).digest('hex');let cached=(song.analysis as any)?.lyrics;
     if(cached?.fingerprint!==fingerprint){await checkpoint('Transcribing lyrics');const wav=path.join(root,song.id+'-lyrics.wav');await extractAudio(files.get(song.id)!,wav,signal);cues=await transcribeWords(connection,wav,song.durationMs,signal,usage);cached={fingerprint,cues};song.analysis={...song.analysis,lyrics:cached} as any;await post(endpoint+'asset',{id:song.id,analysis:song.analysis},signal);}else cues=cached.cues;timing='word';
-    if(settings.theme==='auto'){const themeFingerprint=createHash('sha256').update(JSON.stringify({base:connection.baseUrl,model:connection.model,cues})).digest('hex');if(cached.themeFingerprint!==themeFingerprint){await checkpoint('Choosing lyric palette');const e=(song.analysis as any)?.envelope||[];const energy=Math.sqrt(e.reduce((n:number,v:number)=>n+v*v,0)/Math.max(1,e.length));cached.themeSuggestion=await recommendLyricTheme(connection,cues,energy,signal,usage);cached.themeFingerprint=themeFingerprint;song.analysis={...song.analysis,lyrics:cached} as any;await post(endpoint+'asset',{id:song.id,analysis:song.analysis},signal);}suggestion=cached.themeSuggestion;}
+    if(settings.theme==='auto'){const themeFingerprint=createHash('sha256').update(JSON.stringify({base:connection.baseUrl,model:connection.model,revision:connection.revision,cues})).digest('hex');if(cached.themeFingerprint!==themeFingerprint){await checkpoint('Choosing lyric palette');const e=(song.analysis as any)?.envelope||[];const energy=Math.sqrt(e.reduce((n:number,v:number)=>n+v*v,0)/Math.max(1,e.length));cached.themeSuggestion=await recommendLyricTheme(connection,cues,energy,signal,usage);cached.themeFingerprint=themeFingerprint;song.analysis={...song.analysis,lyrics:cached} as any;await post(endpoint+'asset',{id:song.id,analysis:song.analysis},signal);}suggestion=cached.themeSuggestion;}
    }
    lyricEdit=lyricPlan(assets,job.settings,cues,timing,suggestion);if(job.analyzeOnly){await post(endpoint+'complete',{},signal);return;}
   }
   if(!lyricEdit&&(job.settings.captions||job.settings.mode==='ai'&&connection?.transcriptionModel)){
-   if(!connection||connection.protocol!=='openai'||!connection.transcriptionModel)throw Error('Configure a timestamped transcription model for captions.');
-   const transcriberHash=createHash('sha256').update(connection.baseUrl+connection.transcriptionModel).digest('hex');
+   if(!connection||!connection.transcriptionModel)throw Error('Configure a timestamped transcription model for captions.');
+   const transcriberHash=createHash('sha256').update(connection.baseUrl+connection.transcriptionModel+connection.revision).digest('hex');
    for(const a of assets.filter(x=>x.hasAudio&&(x.kind==='video'||x.role==='voiceover'))){
     if((a.analysis as any)?.transcriber===transcriberHash&&a.analysis?.transcript)continue;
     await checkpoint('Transcribing');const wav=path.join(root,a.id+'.wav');await extractAudio(files.get(a.id)!,wav,signal);const transcript=await transcribe(connection,wav,signal,usage);a.analysis={...a.analysis,transcript,...{transcriber:transcriberHash}};await post(endpoint+'asset',{id:a.id,analysis:a.analysis},signal);
@@ -74,5 +76,7 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
  finally{clearInterval(heartbeat);current=undefined;if(dir)await rm(dir,{recursive:true,force:true});}
 }
 const stop=()=>{stopping=true;current?.abort();};process.on('SIGINT',stop);process.on('SIGTERM',stop);
-console.log('Frameflow media worker ready. One concurrent job.');
-while(!stopping){try{const payload=await post('claim',{});if(payload.job){await work(payload);continue;}}catch{console.error('Worker cannot reach the authorized API. Retrying connection; no AI request was submitted.');}await new Promise(resolve=>setTimeout(resolve,1500));}
+console.log('Frameflow video processor ready.');
+while(!stopping){try{const payload=await post('claim',{});if(payload.connectionTest){const controller=new AbortController();current=controller;const timer=setInterval(()=>post(`connection-tests/${payload.connectionTest.id}/heartbeat`,{}).then(s=>{if(s.status!=='running')controller.abort();}).catch(()=>controller.abort()),10000);try{await checkConnection(payload,root,post,controller.signal);}catch{console.error('Connection check interrupted; provider requests are not automatically repeated.');}finally{clearInterval(timer);current=undefined;}continue;}if(payload.job){await work(payload);continue;}}catch{console.error('Worker cannot reach the authorized API. Retrying connection; no AI request was submitted.');}await new Promise(resolve=>setTimeout(resolve,1500));}
+
+await post('release',{}).catch(()=>{});

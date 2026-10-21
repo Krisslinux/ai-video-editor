@@ -14,3 +14,11 @@ Adds JPEG/PNG/WebP uploads and image-only or mixed image/video sequences, per-im
 - Cached analysis, explicit offsets, original song volume and speed, and no fabricated word timing.
 - Removed marketing copy, decorative intro panels and repeated tips; compact responsive studio and cue controls.
 - Bundled OFL Playfair Display and DM Mono; source inspiration and limits documented in THIRD-PARTY-NOTICES.md.
+
+## Personal custom-provider setup
+
+- Save & test performs separate editing, vision and word-timed audio checks using the encrypted user token.
+- Failed/untested capabilities cannot start API work; settings changes invalidate verification and cached analysis.
+- Custom model suggestions match the provided list; Anthropic and OpenAI chat formats work for both editing and lyric themes.
+- New projects default to API editing; personal workspace copy replaces creator/product/test labels.
+- Added permanent-host Docker restart configuration and systemd boot/crash recovery unit; server activation is pending access.
