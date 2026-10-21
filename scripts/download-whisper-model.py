@@ -12,4 +12,4 @@ if not args.output:
     parser.error('Supply --output or WHISPER_MODEL_PATH')
 Path(args.output).mkdir(parents=True, exist_ok=True)
 download_model(args.model, output_dir=args.output)
-print('Whisper model installed. Run Save & test in your studio before generating lyrics.')
+print('Whisper model installed. Select local Whisper in your studio settings, then generate lyrics.')

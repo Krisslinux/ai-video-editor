@@ -6,9 +6,11 @@ test('lyrics-only studio imports, reviews, exports and downloads on desktop and 
  await page.getByRole('button',{name:'New song',exact:true}).click();
  await page.getByLabel('Choose audio files').setInputFiles(path.resolve('test-data/fixtures/music.wav'));
  await expect(page.getByText('Analyzing song…')).toHaveCount(0,{timeout:30000});
- await expect(page.getByRole('button',{name:'Generate timed lyrics',exact:true})).toBeDisabled();
- await page.getByRole('button',{name:'Import timed lyrics'}).click();
- await page.getByLabel('LRC, lyric JSON, or seconds | seconds | text').fill('0.40 | 1.40 | Synthetic lyric\n1.40 | 3.40 | For testing only');await page.getByRole('button',{name:'Load lyrics',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Generate timed lyrics',exact:true})).toBeEnabled();
+ await page.getByRole('button',{name:'Write lyrics manually',exact:true}).click();
+ await page.getByLabel('Text for lyric 1',{exact:true}).fill('Synthetic lyric');
+ await page.getByLabel('Start seconds for lyric 1',{exact:true}).fill('0.4');await page.getByLabel('End seconds for lyric 1',{exact:true}).fill('1.4');
+ await page.getByRole('button',{name:'Add cue',exact:true}).click();await page.getByLabel('Text for lyric 2',{exact:true}).fill('For testing only');
  await page.getByRole('button',{name:'Save timing',exact:true}).click();await expect(page.getByText('Unsaved changes')).toHaveCount(0);
  await page.getByRole('button',{name:'Moss',exact:true}).click();await page.getByRole('button',{name:'9:16 Portrait'}).click();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);

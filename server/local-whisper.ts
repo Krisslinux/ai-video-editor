@@ -17,8 +17,8 @@ export function parseLocalWords(result:unknown,durationMs:number):Transcript[]{
 }
 export async function transcribeLocalWords(file:string,durationMs:number,signal:AbortSignal){
  const model=process.env.WHISPER_MODEL_PATH;
- if(!model)throw Error('Local Whisper is not installed on this processor. Configure its model, then test again.');
- try{if(!(await stat(model)).isDirectory())throw Error();await access(model+'/model.bin');}catch{throw Error('Local Whisper model files are missing. Install the model on the processor and test again.');}
+ if(!model)throw Error('Local Whisper is not installed on this processor. Configure its model or enter lyrics manually.');
+ try{if(!(await stat(model)).isDirectory())throw Error();await access(model+'/model.bin');}catch{throw Error('Local Whisper model files are missing. Install the model on the processor, or enter lyrics manually.');}
  signal.throwIfAborted();
  const output=await new Promise<string>((resolve,reject)=>{
   const p=spawn(process.env.WHISPER_PYTHON||'python3',[fileURLToPath(new URL('../scripts/whisper-transcribe.py',import.meta.url)),file],{stdio:['ignore','pipe','ignore'],windowsHide:true});

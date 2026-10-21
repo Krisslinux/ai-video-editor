@@ -7,7 +7,7 @@ Frameflow now opens directly into a private lyrics studio. New songs accept audi
 - **FFmpeg / ffprobe:** decode and inspect the uploaded song, extract 16 kHz mono PCM for transcription, encode H.264/AAC exports, and fully decode-check the result.
 - **Whisper via faster-whisper 1.2.1:** optional local recognition with real word timestamps. Runs on the processor, without an audio API token or remote audio upload. An installed Whisper model is required. Quiet singing is not discarded by VAD. The result must pass strict word/range validation; no evenly divided word timing is invented.
 - **HyperFrames 0.8.185 / Puppeteer:** an integrated browser renderer seeks the same trusted lyric composition at exact 1/30-second times, captures PNG frames and pipes them to FFmpeg. Fonts and composition data are served on a temporary private loopback origin. No model-generated HTML, scripts, shell commands or filters are executed.
-- **Claude or the selected chat model:** chooses a validated lyric palette through the saved custom-provider API. The connection check now tests this actual palette contract. It sees lyric text and measured opening audio energy, not the raw song; it cannot establish genre or perfect musical interpretation from those inputs.
+- **Claude or the selected chat model:** chooses a validated lyric palette through the saved custom-provider API. There is no connection preflight; each requested response is validated when used. It sees lyric text and measured opening audio energy, not the raw song; it cannot establish genre or perfect musical interpretation from those inputs.
 
 The reference's **yt-dlp** downloads online videos, and **OpenCV/contrib** tracks subjects for cropping. Those operations do not belong to this audio-upload lyrics workflow and are not installed. Whisper is the model used by faster-whisper; a second openai/whisper runtime is unnecessary.
 
@@ -33,9 +33,9 @@ WHISPER_THREADS=2
 LYRIC_RENDERER=canvas
 ```
 
-Choose **Local faster-whisper** in API settings and run **Save & test**. The test must recognize the built-in phrase and produce ordered word times before automatic lyrics are enabled. The theme request still uses your saved API token. With a manually selected palette, local transcription makes no provider call for a song. Imported LRC/JSON can be corrected and exported without a provider connection.
+Choose **Local faster-whisper** in API settings and click **Save settings**. No test or sample request is made. You can also generate locally without a provider connection. The theme request still uses your saved API token. With a manually selected palette, local transcription makes no provider call for a song. Imported LRC/JSON can be corrected and exported without a provider connection.
 
-Downloads happen only in the explicit setup command. Normal transcription uses local files exclusively. Increase `WHISPER_MODEL_REVISION` and test again after replacing model files. A larger multilingual model may improve recognition but requires more RAM and time; singing and harmonies still need review.
+Downloads happen only in the explicit setup command. Normal transcription uses local files exclusively. Increase `WHISPER_MODEL_REVISION` after replacing model files. A larger multilingual model may improve recognition but requires more RAM and time; singing and harmonies still need review.
 
 ## HyperFrames rendering
 

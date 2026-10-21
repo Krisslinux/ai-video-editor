@@ -6,7 +6,7 @@ Studio: https://frameflow-video-studio.kriss626975.chatgpt.site
 
 The general clip/image editor has been removed from the interface. Original media and older project records are preserved. Lyrics support word timing, LRC/JSON import, editable cues, timing offsets, ten palettes, seven motion styles, lyric MP4 versions and timed-lyric downloads.
 
-The Site hosts the authenticated interface, API and private storage. A separate native processor runs FFmpeg, local faster-whisper and the selected renderer. Custom Claude/OpenAI-compatible/Anthropic requests use your encrypted API token and must pass **Save & test** first. Local transcription needs no audio API subscription. See [lyrics tools and setup](docs/LYRICS-TOOLS.md).
+The Site hosts the authenticated interface, API and private storage. A separate native processor runs FFmpeg, local faster-whisper and the selected renderer. Custom Claude/OpenAI-compatible/Anthropic requests use your encrypted API token when you request an AI action. Local transcription needs no audio API subscription. See [lyrics tools and setup](docs/LYRICS-TOOLS.md).
 
 ## Run locally
 
@@ -49,4 +49,4 @@ Song-only projects support word-timestamp transcription, a reviewable cue editor
 
 ### Personal custom-provider configuration
 
-Use **API settings → Save & test** before API editing or automatic lyrics. The saved token is encrypted and tested against the exact configured model and protocol. Editing, image input and audio word timing have separate results; unsupported features stay blocked. The website is a personal private workspace, with new projects defaulting to API editing. Chat-only provider access does not establish song transcription capability. See `docs/PROCESSOR.md` for a continuously running server service.
+Use **API settings → Save settings** to store your encrypted provider token. Saving makes no test requests and does not depend on the processor being online. Generate lyrics directly, use local Whisper without a provider account, or enter/import lyrics manually. Theme-service failures preserve lyrics and allow manual styling/export. See `docs/PROCESSOR.md` for a continuously running server service.
