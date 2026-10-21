@@ -1,6 +1,6 @@
 # Product direction
 
-Build a responsive website: upload clips + audio → create → preview → download. Desktop installers, timelines, screen recording and generative video are deferred. Read docs/PROJECT.md and HANDOFF.md first.
+Build a responsive personal lyrics studio: upload a song → generate or import timed lyrics → review words/timing → style → preview/export. General clip/image editing is removed from the user interface. Preserve older stored projects and source media. Read docs/PROJECT.md and HANDOFF.md first.
 
 # Working rules
 

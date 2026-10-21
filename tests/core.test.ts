@@ -32,3 +32,10 @@ test('Lyric timing imports preserve supplied times and reject fabricated or inva
  const plan=lyricPlan([song],settings,settings.lyrics.cues,'word');assert.equal(validatePlan(plan,[song],settings).audio[0].gain,1);assert.equal(plan.segments.length,0);
  assert.throws(()=>validatePlan({...plan,audio:[{...plan.audio[0],gain:.18}]},[song],settings),/original volume/);assert.throws(()=>validatePlan({...plan,lyrics:{...plan.lyrics!,songId:'unowned'}},[song],settings),/song/);assert.throws(()=>validatePlan({...automaticPlan([asset('visual')],defaults),segments:[]},[asset('visual')],defaults),/visual/);
 });
+
+
+test('Local speech results require real ordered word timestamps',async()=>{
+ const {parseLocalWords}=await import('../server/local-whisper.ts');
+ assert.deepEqual(parseLocalWords({words:[{word:' River ',start:.48,end:.74}]},3600),[{text:'River',startMs:480,endMs:740}]);
+ for(const result of [{segments:[{text:'Line only',start:0,end:1}]},{words:[{word:'bad',start:1,end:0}]},{words:[{word:'outside',start:0,end:5}]},{words:[{word:'a',start:0,end:1},{word:'b',start:.5,end:1.5}]}])assert.throws(()=>parseLocalWords(result,3600));
+});

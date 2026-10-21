@@ -1,15 +1,11 @@
-# Web product
+# Personal lyrics studio
 
-The accepted direction is a website for creators on phones, tablets and computers. It replaces desktop/Electron, installer and manual-timeline plans.
+The primary workflow is upload a song, generate or import timed lyrics, review/correct words and times, choose palette/motion, preview and export. The general clip/image editor has been removed from navigation and upload controls. Existing project data is preserved, and legacy backend media contracts remain covered by regression tests.
 
-The primary path is upload clips or still images and optional sound, create, preview and download. Creative description, shape, duration, captions and model settings remain secondary. Follow-up edits create versions. Originals are immutable. Automatic assembly is clearly distinct from paid model planning.
+New lyric projects accept audio only, up to eight minutes. Original song speed, full duration and volume are preserved. Timed lyrics can also be downloaded as JSON or LRC. LRC remains line timed; word alignment is never fabricated.
 
-Initial defaults preserve video order and original sound. Auto audio is explicitly treated as background music; users can choose narration or shared-signal recording. Fit keeps the full source frame. Fill is a disclosed centered crop, not semantic subject tracking. Default exports use a 1280 px long edge and 30 fps. Custom even dimensions are bounded to 144–1920 px per side. Auto matches the first source orientation.
+The custom provider token is encrypted. Save & test checks a real lyric-palette response plus a short word-timed speech sample through the selected source. Local faster-whisper is supported on the native processor, alongside provider audio transcription. Unsupported or failed capabilities remain disabled. No uncertain paid request is replayed automatically.
 
-The private Sites publication is the first test environment. Its API persists uploads, jobs and revisions even when the browser closes. The native worker is not hosted by the Site and must remain online independently. Website identity does not provide inference entitlement.
+FFmpeg handles audio/encoding. HyperFrames with Puppeteer is integrated for deterministic browser capture; the verified native canvas route remains available explicitly. See LYRICS-TOOLS.md for configuration and observed runtime limits.
 
-Initial scope deliberately excludes a manual timeline, stock/generative media, screen recording, dubbing, generative narration, transitions/titles, and project interchange. Speech or range-level protection, independent accept/reject review, semantic reframing and synchronized multi-source comparison remain follow-up work; whole-source protection and whole-version restore work now.
-
-Release quality means observed media correctness, honest stage reporting and recoverable failure, not guaranteed editing perfection on arbitrary uploads. Browser/device, live provider and deployment limits are recorded in VALIDATION.md and TASKS.md.
-
-Still images (JPEG, PNG, WebP) can form the entire video or share the same upload-order sequence with video clips. Each image defaults to a three-second display duration, adjustable from 0.5 to 30 seconds. This creates a real MP4 of held images; it does not claim generated camera motion or animation. Auto shape follows the first visual source. Images are limited to 16 megapixels and 8192 pixels per side; animated images, SVG, GIF, HEIC and AVIF are not currently supported.
+The private ChatGPT Site is the current publication. The native processor must run separately. Server installation is pending SSH reachability; a ChatGPT sign-in does not itself configure model inference or local media processing.

@@ -1,6 +1,6 @@
-# Personal video processor
+# Personal lyrics processor
 
-The website is a private personal tool. The API token authorizes inference; native FFmpeg and canvas still need a computer to render files. Chat model access does not host that computer.
+The website is a private personal tool. The API token authorizes inference; native Whisper, FFmpeg, and the selected renderer still need a computer to render files. Chat model access does not host that computer.
 
 Use a permanent Linux server or a computer that stays powered on. A service manager starts the processor at boot and restarts it after a crash. The processor reconnects over outbound HTTPS. It never automatically repeats an uncertain provider call. No Remote Desktop is needed.
 
@@ -21,4 +21,6 @@ Install Node 24.19.x and FFmpeg/ffprobe, create a dedicated `frameflow` user, pu
 
 ## Current deployment boundary
 
-The ChatGPT Site is deployed. This workspace's processor remains temporary, even when supervised. No permanent host credentials or connected server were supplied in this conversation; these service definitions have not been installed on an external server. Docker and systemd deployment require verification on the chosen host. The website reports the actual processor lease, never a forced “online” badge.
+The ChatGPT Site is deployed. This workspace's processor remains temporary, even when supervised. The user supplied an Ubuntu server, but outbound SSH failed with Network is unreachable before authentication; these service definitions have not been installed there. Docker and systemd deployment require verification on the chosen host. The website reports the actual processor lease, never a forced “online” badge.
+
+Local Whisper and HyperFrames/Puppeteer setup: see `LYRICS-TOOLS.md`.

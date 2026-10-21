@@ -1,3 +1,4 @@
+import {transcribeLocalWords,localWhisperFingerprint} from './local-whisper.ts';
 import {checkConnection} from './connection-check.ts';
 import {createReadStream,createWriteStream} from 'node:fs';
 import {mkdir,readFile,writeFile,rename,rm,stat} from 'node:fs/promises';
@@ -28,7 +29,7 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
   const selected=job.kind==='probe'?assets.filter(a=>a.id===job.assetId):assets;
   for(const a of selected){const file=await source(job.id,a,signal);files.set(a.id,file);
    if(a.status!=='ready'){
-    try{const info=await probe(file,signal);if(info.durationMs>limits.seconds*1000)throw Error('Source duration exceeds the project limit.');const held=a.kind==='image'&&a.durationMs>=500?a.durationMs:info.durationMs;Object.assign(a,info,{durationMs:info.kind==='image'?held:info.durationMs,status:'ready',error:undefined});if(a.hasAudio){const features=await audioFeatures(file,root,signal);a.analysis={...a.analysis,...features};}await post(endpoint+'asset',a,signal);if(isVisual(a)){const thumb=path.join(root,a.id+'.jpg');await sample(file,thumb,signal,a.kind==='image'?0:Math.min(.5,a.durationMs/2000));await api(endpoint+`thumb?asset=${a.id}`,{method:'PUT',body:await readFile(thumb)},signal);}}
+    try{const info=await probe(file,signal);if(payload.project?.settings?.lyrics&&info.kind!=='audio')throw Error('Upload an audio file for a lyrics project.');if(payload.project?.settings?.lyrics&&info.durationMs>480000)throw Error('Songs must be no longer than 8 minutes.');if(info.durationMs>limits.seconds*1000)throw Error('Source duration exceeds the project limit.');const held=a.kind==='image'&&a.durationMs>=500?a.durationMs:info.durationMs;Object.assign(a,info,{durationMs:info.kind==='image'?held:info.durationMs,status:'ready',error:undefined});if(a.hasAudio){const features=await audioFeatures(file,root,signal);a.analysis={...a.analysis,...features};}await post(endpoint+'asset',a,signal);if(isVisual(a)){const thumb=path.join(root,a.id+'.jpg');await sample(file,thumb,signal,a.kind==='image'?0:Math.min(.5,a.durationMs/2000));await api(endpoint+`thumb?asset=${a.id}`,{method:'PUT',body:await readFile(thumb)},signal);}}
     catch(e){await post(endpoint+'asset',{id:a.id,status:'error',error:e instanceof Error?e.message.slice(0,300):'Unsupported media.'}).catch(()=>{});throw e;}
    }
    if(isVisual(a)){const thumb=path.join(root,a.id+'.jpg');try{await stat(thumb);}catch{await sample(file,thumb,signal,a.kind==='image'?0:Math.min(1,a.durationMs/2000));}frames.set(a.id,thumb);}
@@ -39,9 +40,10 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
   if(job.settings.lyrics){
    const settings=job.settings.lyrics;const song=assets.find(a=>a.id===settings.songId&&a.kind==='audio'&&a.status==='ready');if(!song)throw Error('Choose an analyzed song.');let cues=settings.cues,timing=settings.timing,suggestion=(song.analysis as any)?.lyrics?.themeSuggestion;
    if(settings.source==='auto'){
-    if(!connection||!connection.transcriptionModel)throw Error('Configure a word-timestamp transcription connection.');
-    const fingerprint=createHash('sha256').update(JSON.stringify({url:connection.baseUrl,model:connection.transcriptionModel,size:song.size,revision:connection.revision,words:1})).digest('hex');let cached=(song.analysis as any)?.lyrics;
-    if(cached?.fingerprint!==fingerprint){await checkpoint('Transcribing lyrics');const wav=path.join(root,song.id+'-lyrics.wav');await extractAudio(files.get(song.id)!,wav,signal);cues=await transcribeWords(connection,wav,song.durationMs,signal,usage);cached={fingerprint,cues};song.analysis={...song.analysis,lyrics:cached} as any;await post(endpoint+'asset',{id:song.id,analysis:song.analysis},signal);}else cues=cached.cues;timing='word';
+    if(!connection||connection.transcriptionEngine!=='faster-whisper'&&!connection.transcriptionModel)throw Error('Configure and test a word-timestamp transcription source.');
+    const local=connection.transcriptionEngine==='faster-whisper';
+    const fingerprint=createHash('sha256').update(JSON.stringify({url:connection.baseUrl,model:local?localWhisperFingerprint():connection.transcriptionModel,engine:local?'faster-whisper':'api',size:song.size,revision:connection.revision,words:1})).digest('hex');let cached=(song.analysis as any)?.lyrics;
+    if(cached?.fingerprint!==fingerprint){await checkpoint('Transcribing lyrics');const wav=path.join(root,song.id+'-lyrics.wav');await extractAudio(files.get(song.id)!,wav,signal);cues=local?await transcribeLocalWords(wav,song.durationMs,signal):await transcribeWords(connection,wav,song.durationMs,signal,usage);cached={fingerprint,cues};song.analysis={...song.analysis,lyrics:cached} as any;await post(endpoint+'asset',{id:song.id,analysis:song.analysis},signal);}else cues=cached.cues;timing='word';
     if(settings.theme==='auto'){const themeFingerprint=createHash('sha256').update(JSON.stringify({base:connection.baseUrl,model:connection.model,revision:connection.revision,cues})).digest('hex');if(cached.themeFingerprint!==themeFingerprint){await checkpoint('Choosing lyric palette');const e=(song.analysis as any)?.envelope||[];const energy=Math.sqrt(e.reduce((n:number,v:number)=>n+v*v,0)/Math.max(1,e.length));cached.themeSuggestion=await recommendLyricTheme(connection,cues,energy,signal,usage);cached.themeFingerprint=themeFingerprint;song.analysis={...song.analysis,lyrics:cached} as any;await post(endpoint+'asset',{id:song.id,analysis:song.analysis},signal);}suggestion=cached.themeSuggestion;}
    }
    lyricEdit=lyricPlan(assets,job.settings,cues,timing,suggestion);if(job.analyzeOnly){await post(endpoint+'complete',{},signal);return;}
@@ -76,7 +78,7 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
  finally{clearInterval(heartbeat);current=undefined;if(dir)await rm(dir,{recursive:true,force:true});}
 }
 const stop=()=>{stopping=true;current?.abort();};process.on('SIGINT',stop);process.on('SIGTERM',stop);
-console.log('Frameflow video processor ready.');
+console.log('Frameflow lyrics processor ready.');
 while(!stopping){try{const payload=await post('claim',{});if(payload.connectionTest){const controller=new AbortController();current=controller;const timer=setInterval(()=>post(`connection-tests/${payload.connectionTest.id}/heartbeat`,{}).then(s=>{if(s.status!=='running')controller.abort();}).catch(()=>controller.abort()),10000);try{await checkConnection(payload,root,post,controller.signal);}catch{console.error('Connection check interrupted; provider requests are not automatically repeated.');}finally{clearInterval(timer);current=undefined;}continue;}if(payload.job){await work(payload);continue;}}catch{console.error('Worker cannot reach the authorized API. Retrying connection; no AI request was submitted.');}await new Promise(resolve=>setTimeout(resolve,1500));}
 
 await post('release',{}).catch(()=>{});

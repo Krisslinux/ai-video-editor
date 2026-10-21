@@ -7,3 +7,9 @@ dist
 artifacts
 test-results
 playwright-report
+
+.venv-whisper/
+
+.cache/
+pip-metadata-*/
+pip-unpack-*/

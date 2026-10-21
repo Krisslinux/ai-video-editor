@@ -1,14 +1,16 @@
-# Frameflow · AI video editor
+# Frameflow · lyrics studio
 
-A responsive web studio: **upload clips/images + audio → create → preview → revise → download**. No timeline is required. Original files are preserved, and every completed edit is a restorable version.
+A private personal studio: **upload a song → generate or import timed lyrics → review → style → preview and export**.
 
-Private test studio: https://frameflow-video-studio.kriss626975.chatgpt.site
+Studio: https://frameflow-video-studio.kriss626975.chatgpt.site
 
-The Site hosts the interface, authenticated API, D1 database and private R2 media. Native FFmpeg runs in an independently connected worker. The development worker is temporary; permanent availability requires a worker host. This is an initial test release, not a claim of production readiness.
+The general clip/image editor has been removed from the interface. Original media and older project records are preserved. Lyrics support word timing, LRC/JSON import, editable cues, timing offsets, ten palettes, seven motion styles, lyric MP4 versions and timed-lyric downloads.
+
+The Site hosts the authenticated interface, API and private storage. A separate native processor runs FFmpeg, local faster-whisper and the selected renderer. Custom Claude/OpenAI-compatible/Anthropic requests use your encrypted API token and must pass **Save & test** first. Local transcription needs no audio API subscription. See [lyrics tools and setup](docs/LYRICS-TOOLS.md).
 
 ## Run locally
 
-Install Node **24.19+ (24.x)**, FFmpeg 6.1+ with H.264/AAC/libass, and DejaVu fonts. No owner's accounts are required.
+Install Node 24.19.x and FFmpeg/ffprobe. Then:
 
 ```sh
 npm ci --ignore-scripts
@@ -16,19 +18,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Open http://localhost:4173, create a local account, start a project, and upload clips. Automatic assembly works without an AI key. Choose the correct audio role, optionally select a screen shape, and click **Create my video**. The worker produces an actual MP4. Creative instructions require a configured model and **Connected AI** selected in the project's additional options.
-
-On Windows, copy `.env.example` to `.env` in Explorer or PowerShell, install Node and FFmpeg, put FFmpeg/ffprobe on PATH, then use the same npm commands. Docker is optional. The listed remote Windows host was not used.
-
-## What works
-
-- React/TypeScript interface with desktop file drop and ordinary mobile file pickers.
-- Streaming, resumable tus 1.0 core uploads with offset checks, private ownership, and bounded chunks.
-- Server-side content probing, thumbnails, audio envelopes, saved analysis and durable queued jobs.
-- Image-to-video: JPEG, PNG and WebP photos, image-only or mixed projects, adjustable 0.5–30 second holds (3 seconds by default), and optional audio.
-- Real native rendering: trims/order, Fit or centered Fill, aspect ratios and custom dimensions, original audio, narration, music fades/ducking/limiting, shared-signal correlation with confidence checks, H.264/AAC MP4.
-- OpenAI-compatible and Anthropic Messages planning adapters; optional OpenAI-compatible timestamped transcription and derived burned-in captions. **Live provider credentials were unavailable, so live AI is unverified.** Local mock adapter tests are explicitly labeled.
-- Protected sources, version selection/restore, first-source comparison, quality checks, authenticated playback/range downloads, cancellation, request budgets, storage/job quotas and deletion.
+Open http://localhost:4173 and add a song. Configure your transcription source in API settings, or import timed lyrics. Review spelling and timing, choose style/shape, and export. For local Whisper or HyperFrames/Puppeteer, follow [the tool setup](docs/LYRICS-TOOLS.md). The temporary processor here uses the verified canvas/FFmpeg renderer because Chromium cannot launch in this environment. A permanent Ubuntu deployment remains blocked by SSH reachability.
 
 ## Verify
 
@@ -37,6 +27,7 @@ npm run check
 npm test
 npm run fixtures
 npm run test:integration
+npm run test:lyrics
 npm run build:sites
 # On a machine with supported browser infrastructure:
 npx playwright install --with-deps chromium webkit
