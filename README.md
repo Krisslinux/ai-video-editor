@@ -4,7 +4,7 @@ A private personal studio: **upload a song → generate or import timed lyrics �
 
 Studio: https://frameflow-video-studio.kriss626975.chatgpt.site
 
-The general clip/image editor has been removed from the interface. Original media and older project records are preserved. Lyrics support word timing, LRC/JSON import, editable cues, timing offsets, ten palettes, seven motion styles, lyric MP4 versions and timed-lyric downloads.
+The general clip/image editor has been removed from the interface. Original media and older project records are preserved. Lyrics support word timing, online provider lookup, LRC/TTML/SRT/VTT/JSON import, editable cues, timing offsets, ten palettes, seven motion styles, lyric MP4 versions and timed-lyric downloads.
 
 The Site hosts the authenticated interface, API and private storage. A separate native processor runs FFmpeg, local faster-whisper and the selected renderer. Custom Claude/OpenAI-compatible/Anthropic requests use your encrypted API token when you request an AI action. Local transcription needs no audio API subscription. See [lyrics tools and setup](docs/LYRICS-TOOLS.md).
 
@@ -50,3 +50,7 @@ Song-only projects support word-timestamp transcription, a reviewable cue editor
 ### Personal custom-provider configuration
 
 Use **API settings → Save settings** to store your encrypted provider token. Saving makes no test requests and does not depend on the processor being online. Generate lyrics directly, use local Whisper without a provider account, or enter/import lyrics manually. Theme-service failures preserve lyrics and allow manual styling/export. See `docs/PROCESSOR.md` for a continuously running server service.
+
+### Find lyrics online
+
+Choose **Lyrics → Find lyrics online**, enter title/artist and select Auto or a source. Frameflow ranks returned recordings and preserves supplied word or line times. All 16 screenshot names are present: 12 fetch adapters and four import routes. PaxSenix uses its own encrypted key; BetterLyrics keys are optional for restricted requests. YouTube captions, YouTube Music, Megalobiz and Genius open their source/import workflow. Public searches never receive your AI token or uploaded audio. See [provider details and limitations](docs/LYRICS-PROVIDERS.md).

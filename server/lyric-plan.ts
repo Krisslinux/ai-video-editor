@@ -1,9 +1,11 @@
+import {lyricProviders} from '../shared/lyric-sources.ts';
 import {z} from 'zod';
 import {lyricThemes,lyricMotions,lyricLimitMs,shiftCues,chooseTheme,checkCues} from '../shared/lyrics.ts';
 import type {Asset,Settings,Plan,Transcript} from '../shared/types.ts';
 import {dimensions} from '../shared/composition.ts';
 export const cueSchema=z.object({startMs:z.number().int().nonnegative(),endMs:z.number().int().positive(),text:z.string().trim().min(1).max(160)}).strict();
-export const lyricSettingsSchema=z.object({songId:z.string().max(80),source:z.enum(['auto','manual']),theme:z.enum(['auto',...lyricThemes.map(x=>x.id)]),motion:z.enum(lyricMotions),offsetMs:z.number().int().min(-10000).max(10000),cues:z.array(cueSchema).max(2000),timing:z.enum(['word','line'])}).strict();
+const providerId=z.enum(lyricProviders.map(p=>p.id));
+export const lyricSettingsSchema=z.object({songId:z.string().max(80),source:z.enum(['auto','manual']),theme:z.enum(['auto',...lyricThemes.map(x=>x.id)]),motion:z.enum(lyricMotions),offsetMs:z.number().int().min(-10000).max(10000),cues:z.array(cueSchema).max(2000),timing:z.enum(['word','line']),lookup:z.object({title:z.string().max(200),artist:z.string().max(200),album:z.string().max(200),provider:z.enum(['auto',...lyricProviders.map(p=>p.id)]),videoId:z.string().regex(/^[a-zA-Z0-9_-]{11}$/).optional()}).strict().optional(),attribution:z.object({provider:providerId,title:z.string().max(200),artist:z.string().max(200),album:z.string().max(200),durationMs:z.number().int().positive().max(3600000).optional(),url:z.url().max(500)}).strict().optional()}).strict();
 export const lyricCompositionSchema=z.object({songId:z.string().max(80),durationMs:z.number().int().positive().max(lyricLimitMs),cues:z.array(cueSchema).min(1).max(2000),theme:z.enum(lyricThemes.map(x=>x.id)),motion:z.enum(lyricMotions),timing:z.enum(['word','line']),energy:z.number().min(0).max(1),themeReason:z.string().max(250)}).strict();
 export function lyricPlan(assets:Asset[],settings:Settings,cues:Transcript[],timing:'word'|'line',suggestion?:{theme:import('../shared/lyrics.ts').LyricTheme;reason:string}):Plan{
  const s=lyricSettingsSchema.parse(settings.lyrics),song=assets.find(a=>a.id===s.songId&&a.kind==='audio'&&a.status==='ready');if(!song)throw Error('Choose an analyzed song.');if(song.durationMs>lyricLimitMs)throw Error('Lyric videos support songs up to 8 minutes.');

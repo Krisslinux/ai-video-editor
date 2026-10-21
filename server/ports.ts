@@ -10,4 +10,4 @@ export interface Objects {
   delete(key:string):Promise<void>;
   deletePrefix(prefix:string):Promise<void>;
 }
-export interface Runtime {db:Database;objects:Objects;key:string;workerToken:string;origin:string;production:boolean;hosted:boolean;limits:{fileBytes:number;outputBytes?:number;userBytes:number;seconds:number;assets:number;jobs:number;calls:number;renders:number;retention:number};inviteCode?:string;identity?:(request:Request)=>{id:string;email:string}|null;}
+export interface Runtime {lyricFetch?:typeof fetch;db:Database;objects:Objects;key:string;workerToken:string;origin:string;production:boolean;hosted:boolean;limits:{fileBytes:number;outputBytes?:number;userBytes:number;seconds:number;assets:number;jobs:number;calls:number;renders:number;retention:number};inviteCode?:string;identity?:(request:Request)=>{id:string;email:string}|null;}

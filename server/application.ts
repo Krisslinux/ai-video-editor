@@ -1,3 +1,6 @@
+import {lyricProviders} from '../shared/lyric-sources.ts';
+import {searchLyrics} from './lyric-sources.ts';
+import type {LyricsKeys} from './lyric-sources.ts';
 import {z} from 'zod';
 import type {Runtime} from './ports.ts';
 import type {Asset,Project,Settings,Connection,Revision} from '../shared/types.ts';
@@ -79,6 +82,11 @@ export async function handle(request:Request,rt:Runtime):Promise<Response>{
    const token=id()+id();await db.run('INSERT INTO sessions VALUES(?,?,?)',await digest(token),account.id,now+30*86400000);return response({user:{id:account.id,email:account.email}},200,{'set-cookie':`ff_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000${rt.production?'; Secure':''}`});
   }
   check(user,401,'Sign in to open your studio.'); const uid=user.id;
+  if(p==='/api/lyrics/keys'){
+   if(m==='GET'){const rows=await db.all('SELECT provider FROM lyric_credentials WHERE user_id=?',uid);return response({configured:rows.map(r=>r.provider)},200,{'cache-control':'no-store'});}
+   if(m==='PUT'){const b=z.object({provider:z.enum(['paxsenix','betterlyrics']),token:z.string().trim().min(1).max(1000)}).strict().parse(await body(request));await db.run('INSERT INTO lyric_credentials(user_id,provider,secret) VALUES(?,?,?) ON CONFLICT(user_id,provider) DO UPDATE SET secret=excluded.secret',uid,b.provider,await seal(b.token,rt.key));return response({ok:true});}
+   if(m==='DELETE'){const b=z.object({provider:z.enum(['paxsenix','betterlyrics'])}).strict().parse(await body(request));await db.run('DELETE FROM lyric_credentials WHERE user_id=? AND provider=?',uid,b.provider);return response({ok:true});}
+  }
   if(p==='/api/auth/logout'&&m==='POST'){const token=request.headers.get('cookie')?.match(/ff_session=([^;]+)/)?.[1];if(token)await db.run('DELETE FROM sessions WHERE hash=?',await digest(token));return response({ok:true},200,{'set-cookie':'ff_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0'});}
   const connectionRow=await db.get('SELECT * FROM connections WHERE user_id=?',uid);const connection=parse(connectionRow);
   if(p==='/api/connection'){
@@ -124,6 +132,15 @@ export async function handle(request:Request,rt:Runtime):Promise<Response>{
   if(media){const a=assets.find(x=>x.id===media[1]);check(a,404,'Asset not found.');if(media[2]==='thumb'&&m==='GET'){const obj=await objects.get(assetKey(projectId,a.id,'thumb.jpg'));return obj?new Response(obj.body,{headers:{'content-type':'image/jpeg','cache-control':'private, max-age=600'}}):new Response(null,{status:404});}
    if(media[2]==='media'&&m==='GET')return sourceResponse(a,rt,request);
    if(m==='PATCH'){check(!active,409,'Cancel the edit before changing source controls.');const b=z.object({role:z.enum(['auto','voiceover','music','sync']).optional(),protected:z.boolean().optional(),durationMs:z.number().int().min(imageDuration.minMs).max(imageDuration.maxMs).optional()}).strict().parse(await body(request));if(b.durationMs!==undefined){check(a.kind==='image'&&a.status==='ready',400,'Display duration can only be set for analyzed images.');check(!a.protected,409,'Unlock this image before changing its duration.');}await db.run('UPDATE assets SET data=? WHERE id=?',JSON.stringify({...a,...b}),a.id);return response({ok:true});}
+  }
+  if(action==='lyrics/search'&&m==='POST'){
+   const b=z.object({songId:z.string().min(1).max(80),title:z.string().trim().min(1).max(200),artist:z.string().trim().min(1).max(200),album:z.string().trim().max(200).default(''),provider:z.enum(['auto',...lyricProviders.map(p=>p.id)]).default('auto'),videoId:z.string().regex(/^[a-zA-Z0-9_-]{11}$/).optional()}).strict().parse(await body(request));
+   const song=assets.find(a=>a.id===b.songId&&a.kind==='audio'&&a.status==='ready');check(song,404,'Choose an analyzed song first.');check(song.durationMs<=lyricLimitMs,400,'Lyrics support songs up to 8 minutes.');
+   const rows=await db.all('SELECT provider,secret FROM lyric_credentials WHERE user_id=?',uid);const keys:LyricsKeys={};for(const row of rows)keys[row.provider as keyof LyricsKeys]=await unseal(row.secret,rt.key);
+   const signature=await digest(JSON.stringify({...b,durationMs:song.durationMs,keys:rows.map(r=>r.secret)}));const cacheKey=`projects/${projectId}/lyrics-search.json`;const cached=await objects.get(cacheKey);
+   if(cached){const cache=await new Response(cached.body).json() as any;if(cache.signature===signature&&cache.expiresAt>now)return response(cache.result,200,{'cache-control':'no-store'});}
+   const lockId=`lyrics-search:${uid}`,owner=id();await db.run('INSERT OR IGNORE INTO locks(id,owner,expires_at) VALUES(?,?,?)',lockId,owner,now+45000);await db.run('UPDATE locks SET owner=?,expires_at=? WHERE id=? AND expires_at<?',owner,now+45000,lockId,now);check((await db.get('SELECT owner FROM locks WHERE id=?',lockId))?.owner===owner,429,'A lyrics search is in progress. Try again shortly.');
+   try{const found=await searchLyrics(b,song.durationMs,keys,request.signal,rt.lyricFetch);const content=new TextEncoder().encode(JSON.stringify({signature,expiresAt:Date.now()+(found.candidates.length?300000:30000),result:found}));await objects.put(cacheKey,content,'application/json');return response(found,200,{'cache-control':'no-store'});}finally{await db.run('UPDATE locks SET expires_at=? WHERE id=? AND owner=?',Date.now()+1500,lockId,owner);}
   }
   if(action==='lyrics'&&m==='GET'){const a=assets.find(a=>a.id===url.searchParams.get('song')&&a.kind==='audio');check(a,404,'Song not found.');return response({cues:a.analysis?.lyrics?.cues||[],suggestion:a.analysis?.lyrics?.themeSuggestion||null,notice:a.analysis?.lyrics?.themeWarning||'',timing:'word',energy:(()=>{const e=a.analysis?.envelope||[];return Math.sqrt(e.reduce((n:number,v:number)=>n+v*v,0)/Math.max(1,e.length));})()});}
   if(action==='create'&&m==='POST'){

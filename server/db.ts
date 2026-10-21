@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS connection_tests (
 );
 CREATE INDEX IF NOT EXISTS connection_tests_user ON connection_tests(user_id, created_at);
 
+CREATE TABLE IF NOT EXISTS lyric_credentials(user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,provider TEXT NOT NULL,secret TEXT NOT NULL,PRIMARY KEY(user_id,provider));
+INSERT OR IGNORE INTO migrations VALUES(3,unixepoch()*1000);
 INSERT OR IGNORE INTO migrations VALUES(1,unixepoch()*1000);
 INSERT OR IGNORE INTO migrations VALUES(2,unixepoch()*1000);`);
 export const one=(sql:string,...args:any[])=>db.prepare(sql).get(...args) as Record<string,any>|undefined;
