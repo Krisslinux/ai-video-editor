@@ -1,0 +1,20 @@
+import {test,expect} from '@playwright/test';
+import path from 'node:path';
+test('real upload, render, portrait revision, restore and download',async({page},testInfo)=>{
+ const account=await page.request.post('/api/auth/register',{data:{email:`browser-${Date.now()}-${testInfo.project.name}@example.test`,password:'browser-test-fixture-only'}});expect(account.ok()).toBeTruthy();
+ await page.goto('/');await page.getByRole('button',{name:'Start a new video'}).click();
+ await page.getByLabel('Choose video clips').setInputFiles([path.resolve('test-data/fixtures/clip-a.mp4'),path.resolve('test-data/fixtures/clip-b.mp4')]);
+ await expect(page.getByRole('button',{name:'Create my video'})).toBeEnabled();
+ await page.getByLabel('Choose audio files').setInputFiles(path.resolve('test-data/fixtures/music.wav'));
+ await expect(page.getByRole('button',{name:'Create my video'})).toBeEnabled();
+ await page.getByRole('button',{name:'Create my video'}).click();
+ await expect(page.getByRole('link',{name:'Download video'})).toBeVisible({timeout:90000});
+ await expect(page.getByLabel('Edited video preview')).toBeVisible();
+ await expect.poll(()=>page.locator('video').evaluate((v:HTMLVideoElement)=>v.readyState)).toBeGreaterThan(0);
+ await page.getByRole('button',{name:'Change to portrait',exact:true}).click();
+ await expect(page.getByText('VERSION 02',{exact:true})).toBeVisible({timeout:90000});
+ const dimensions=await page.locator('video').evaluate((v:HTMLVideoElement)=>({width:v.videoWidth,height:v.videoHeight}));expect(dimensions).toEqual({width:720,height:1280});
+ await page.getByRole('button',{name:'Restore version 1',exact:true}).click();await expect(page.getByText('VERSION 01',{exact:true})).toBeVisible();
+ const downloaded=page.waitForEvent('download');await page.getByRole('link',{name:'Download video'}).click();await (await downloaded).saveAs(testInfo.outputPath('render.mp4'));
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+});

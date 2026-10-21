@@ -1,0 +1,39 @@
+# Observed validation · 2026-10-21
+
+Environment: Linux workspace, Node v24.19.0, FFmpeg/ffprobe 6.1.1, React 19.3.1, Vite 8.3.5, Express 5.3.0, TypeScript 5.9.3. Existing MIT license preserved. The canonical main branch initially held only README/LICENSE. A separate feature branch was created. No Windows or Remote Desktop work was performed after the user's instruction.
+
+Passed locally:
+
+- Type checking and production browser/Worker builds.
+- Plan ownership, ranges, protected clips, speech/caption mapping, ratios, rejected unknown automatic instructions, public/private DNS classification and known-lag waveform correlation.
+- Explicit local mock contract tests exercise both OpenAI-compatible and Anthropic Messages planning adapters. This is not a live model test.
+- Real HTTP integration: account/session, multi-clip/audio uploads, durable offsets, wrong-offset rejection, upload/session recovery across an API restart, worker probing, queued encode, full decode, byte-range playback/download, portrait revision, restore, protected-reframing rejection, cross-user isolation, unauthorized worker rejection.
+
+Synthetic media measurement:
+
+| Measure | Observed |
+|---|---|
+| Output | H.264/AAC MP4, 1280 × 720, 30 fps |
+| Duration / frame count | 6000 ms / 180 frames |
+| Expected and detected flash frames | 12, 42, 72, 102, 132, 162 |
+| Audio peak offset relative to flash | +9.25, +16.75, +10.75, +0.90, +6.60, +3.40 ms |
+| One-frame bound | 33.33 ms; all measured peaks within bound |
+| Portrait revision | 720 × 1280, playable |
+
+The click has a 20 ms envelope and AAC ringing/priming can shift the measured peak; this peak method is not a sample-exact onset measurement. There was no observed accumulating drift in this six-second CFR fixture. This does not prove sync for arbitrary phone/VFR/long-form media. Transcription/caption timing tests are mapping tests; live recognition and rendered caption appearance remain unverified.
+
+The environment occasionally reset a reused local HTTP GET connection. GET/HEAD test reads can recover once; one such retry was recorded in a run. Mutation requests are not blindly retried. The same fixture's rendered metrics were unchanged across successful runs. Recovery of network errors must still be exercised in real browsers.
+
+The private Site deployment succeeded, including D1 schema application and R2 binding. An authenticated worker claim against the deployed API returned HTTP 200 and connected the development worker. That is an API/deployment check; a creator's complete hosted-browser workflow has not been observed here.
+
+Unverified or pending:
+
+- Managed browser supervisor was unavailable (`sites-previewd` mailbox missing). The Sites skill prohibits replacing that infrastructure. Therefore browser visual QA and Playwright execution were not claimed. Chromium desktop/mobile and WebKit mobile workflow tests are supplied for CI/normal development hosts.
+- No real Android/iOS device, Safari/Firefox/Edge run, dynamic text testing or actual browser-version matrix.
+- No real phone files, orientation-metadata/VFR/mixed-rate/noisy-speech fixtures or long-duration render yet. Synthetic music uses 44.1 kHz and source sound 48 kHz, exercising sample-rate mixing.
+- No live AI key or custom Claude service; no real paid calls, transcription/vision quality, pricing or provider account eligibility verification.
+- Shared-signal correlation passed a deterministic numerical lag test; a real separate-recorder synchronization render is pending.
+- No Docker installation, production Linux/Windows deployment, domain/DNS operation, disaster restore or pilot with real creators.
+- No CodeRabbit service result or configured Sentry account/DSN. Diagnostics are off, with no claim that monitoring is connected.
+
+The build is suitable for a private test, with honest worker-offline/provider errors. It is not labeled fully complete or production-perfect. See TASKS.md for the next supported work.

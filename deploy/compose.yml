@@ -1,0 +1,51 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    env_file: ../.env
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATA_DIR: /app/data
+    restart: unless-stopped
+    volumes: ["frameflow-data:/app/data"]
+    read_only: true
+    tmpfs: ["/tmp:size=64m"]
+    mem_limit: 768m
+    cpus: 1.0
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+  worker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["npm", "run", "worker"]
+    env_file: ../.env
+    environment:
+      NODE_ENV: production
+      WORKER_API_URL: http://api:3001
+      WORKER_DATA_DIR: /app/data
+      FFMPEG_THREADS: "2"
+    restart: unless-stopped
+    depends_on: [api]
+    volumes: ["worker-cache:/app/data"]
+    read_only: true
+    tmpfs: ["/tmp:size=128m"]
+    mem_limit: 3g
+    cpus: 2.0
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+  caddy:
+    image: caddy:2.10.2-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in your .env file}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-data:/data", "caddy-config:/config"]
+    restart: unless-stopped
+    depends_on: [api]
+volumes:
+  frameflow-data:
+  worker-cache:
+  caddy-data:
+  caddy-config:

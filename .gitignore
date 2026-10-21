@@ -147,3 +147,17 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Frameflow private media and verification output
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+data/
+test-data/
+test-results/
+playwright-report/
+*.log
+.openai/
+artifacts/
