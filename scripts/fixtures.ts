@@ -9,4 +9,5 @@ for(const [name,color,freq]of [['clip-a','0x354f36','1000'],['clip-b','0x394b62'
 }
 await command('ffmpeg',['-v','error','-y','-f','lavfi','-i','sine=frequency=220:sample_rate=44100:duration=6','-af','volume=0.15','-c:a','pcm_s16le',path.join(dest,'music.wav')]);
 await command('ffmpeg',['-v','error','-y','-f','lavfi','-i',"flite=text='This is the first sentence.       This is the second sentence.':voice=slt",'-ar','16000',path.join(dest,'voice.wav')]);
-console.log('Synthetic fixtures generated: numbered frames, flash/click markers, speech and music.');
+for(const [name,color,dimensions]of [['photo-red.jpg','red','400x300'],['photo-green.png','lime','360x640'],['photo-blue.webp','blue','640x360']])await command('ffmpeg',['-v','error','-y','-f','lavfi','-i',`color=c=${color}:s=${dimensions}`,'-frames:v','1','-threads','1',path.join(dest,name)]);
+console.log('Synthetic fixtures generated: numbered frames, flash/click markers, speech, music, and JPEG/PNG/WebP images.');

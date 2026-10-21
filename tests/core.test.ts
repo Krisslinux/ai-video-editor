@@ -9,6 +9,12 @@ test('Plans use only owned media and reject invalid or protected edits',()=>{con
 test('Ratios preserve shape and captions follow cuts and voice placement',()=>{const a=asset('a');a.analysis={transcript:[{startMs:1000,endMs:2000,text:'Actual speech'}]};const plan=automaticPlan([a],{...defaults,ratio:'9:16'});plan.segments[0].inMs=500;assert.deepEqual(dimensions({...defaults,ratio:'9:16'},[a]),{width:720,height:1280});assert.deepEqual(mapCaptions(plan,[a]),[{startMs:500,endMs:1500,text:'Actual speech'}]);});
 test('Private, metadata, reserved, and mapped addresses cannot be AI endpoints',()=>{for(const ip of ['127.0.0.1','10.1.2.3','169.254.169.254','172.16.4.2','192.168.1.1','100.64.0.1','::1','::ffff:127.0.0.1','fc00::1','fe80::1','2001:db8::1'])assert.equal(publicAddress(ip),false,ip);assert.equal(publicAddress('8.8.8.8'),true);assert.equal(publicAddress('2606:4700:4700::1111'),true);});
 test('Unknown creative instructions are never presented as an AI edit',()=>{assert.throws(()=>automaticPlan([asset('a')],defaults,'create an emotional montage'),/Connect AI/);});
+test('Image-only and mixed visual plans honor duration, orientation, and protection',()=>{
+ const photo:Asset={...asset('photo'),kind:'image',durationMs:1500,width:360,height:640,hasAudio:false};const clip=asset('clip');
+ const images=automaticPlan([photo],defaults);assert.deepEqual(images.segments.map(s=>[s.assetId,s.outMs]),[['photo',1500]]);assert.equal(images.width,720);assert.equal(images.height,1280);assert.equal(validatePlan(images,[photo],defaults).segments.length,1);
+ const mixed=automaticPlan([photo,clip],defaults);assert.deepEqual(mixed.segments.map(s=>s.assetId),['photo','clip']);
+ photo.protected=true;assert.throws(()=>validatePlan({...images,segments:[{assetId:'photo',inMs:0,outMs:500,gain:1}]},[photo],defaults),/protected/);assert.throws(()=>validatePlan({...images,segments:[{assetId:'photo',inMs:0,outMs:4000,gain:1}]},[photo],defaults),/range/);
+});
 
 test('Shared-signal alignment rejects silence and measures an introduced offset',()=>{let seed=3;const ref=Array.from({length:800},()=>{seed=(seed*16807)%2147483647;return seed/2147483647;});const recording=[...Array(8).fill(0),...ref];const result=correlate(ref,recording);assert.equal(result.reliable,true);assert.equal(result.offsetMs,-160);assert.ok(result.confidence>.99);assert.equal(correlate(Array(800).fill(0),Array(800).fill(0)).reliable,false);});
 test('Explicit local mock verifies OpenAI and Anthropic adapter contracts, not live AI',async()=>{

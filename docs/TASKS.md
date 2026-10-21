@@ -2,7 +2,7 @@
 
 ## Delivered for private testing
 
-- Responsive upload/processing/result studio, projects, provider settings.
+- Responsive upload/processing/result studio, projects, provider settings, JPEG/PNG/WebP image sequences and mixed visual projects.
 - Common Node/Sites API, private ownership and secure server credentials.
 - Real chunk uploads, persistent media/job state and native worker rendering.
 - Automatic/AI plan boundary, strict validation, two provider protocol adapters and optional transcription.

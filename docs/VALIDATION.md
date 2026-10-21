@@ -37,3 +37,11 @@ Unverified or pending:
 - No CodeRabbit service result or configured Sentry account/DSN. Diagnostics are off, with no claim that monitoring is connected.
 
 The build is suitable for a private test, with honest worker-offline/provider errors. It is not labeled fully complete or production-perfect. See TASKS.md for the next supported work.
+
+## Image-to-video verification
+
+Seven core/adapter tests and the extended real HTTP/media integration passed after adding still images. Three actual JPEG/PNG/WebP fixtures were uploaded, probed by content, given display durations of 1.5, 2.0 and 2.5 seconds, and rendered without any source video or AI connection. The downloaded image-only MP4 was 1280 × 960, 6000 ms and 180 frames. Sampled output colors confirmed the correct red → green → blue sequence at its expected times.
+
+A second version combined those images, a three-second source clip and music. The downloaded portrait MP4 was 720 × 1280, 9000 ms and 270 frames. Duration bounds, protected-image duration rejection, original PNG MIME/range playback and rejection of SVG text disguised as JPEG passed. The original flash/click fixture still passed unchanged. Two transient GET/HEAD transport retries were recorded in the extended run; mutation requests were not automatically retried. API responses and polling now explicitly disable caching.
+
+The production browser/Worker builds and type checks passed. A Playwright image upload → duration → render → original-image comparison → download case is supplied. Browser execution remains unverified because the managed preview supervisor was unavailable. Live model planning from photos remains unverified without a configured provider.

@@ -1,6 +1,6 @@
 # Frameflow · AI video editor
 
-A responsive web studio: **upload clips + audio → create → preview → revise → download**. No timeline is required. Original files are preserved, and every completed edit is a restorable version.
+A responsive web studio: **upload clips/images + audio → create → preview → revise → download**. No timeline is required. Original files are preserved, and every completed edit is a restorable version.
 
 Private test studio: https://frameflow-video-studio.kriss626975.chatgpt.site
 
@@ -25,6 +25,7 @@ On Windows, copy `.env.example` to `.env` in Explorer or PowerShell, install Nod
 - React/TypeScript interface with desktop file drop and ordinary mobile file pickers.
 - Streaming, resumable tus 1.0 core uploads with offset checks, private ownership, and bounded chunks.
 - Server-side content probing, thumbnails, audio envelopes, saved analysis and durable queued jobs.
+- Image-to-video: JPEG, PNG and WebP photos, image-only or mixed projects, adjustable 0.5–30 second holds (3 seconds by default), and optional audio.
 - Real native rendering: trims/order, Fit or centered Fill, aspect ratios and custom dimensions, original audio, narration, music fades/ducking/limiting, shared-signal correlation with confidence checks, H.264/AAC MP4.
 - OpenAI-compatible and Anthropic Messages planning adapters; optional OpenAI-compatible timestamped transcription and derived burned-in captions. **Live provider credentials were unavailable, so live AI is unverified.** Local mock adapter tests are explicitly labeled.
 - Protected sources, version selection/restore, first-source comparison, quality checks, authenticated playback/range downloads, cancellation, request budgets, storage/job quotas and deletion.

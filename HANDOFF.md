@@ -17,3 +17,7 @@ Live AI is the immediate external blocker: no real provider credential/endpoint 
 Run locally: `npm ci --ignore-scripts`, copy `.env.example` to `.env`, install FFmpeg/ffprobe, `npm run dev`, then http://localhost:4173. Verification: `npm run check`, `npm test`, `npm run fixtures`, `npm run test:integration`, `npm run build:sites`. Supplied Playwright tests require a normal supported test host.
 
 Before public release: install retention/orphan cleanup, verify deployed worker persistence, real AI and end-to-end browser/device behavior, and test backup restoration. Source/committed-output quotas and request limits exist, but actual costs may be unknown and are not hard monetary caps. Monitoring and CodeRabbit are not claimed connected.
+
+## Image-to-video update
+
+Use **Add images** (JPEG, PNG, WebP), or drop images and clips together. An image-only project can create a video with no AI credentials. Set each image's **Show for** duration (0.5–30 seconds, default 3), optionally add music/narration, then create, preview and download. The same native worker handles stills and video clips. Existing sources, ownership, image protection, versions, Fit/Fill and ratios apply. The temporary worker must run the updated code. Animated images and HEIC/AVIF/SVG/GIF are outside the supported image formats.

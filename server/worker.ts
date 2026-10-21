@@ -7,6 +7,7 @@ import {randomUUID,createHash} from 'node:crypto';
 import {probe,sample,extractAudio,render,quality,command,audioFeatures,correlate} from './media.ts';
 import {automaticPlan,validatePlan} from './plan.ts';
 import {planWithAI,transcribe} from './provider.ts';
+import {isVisual} from '../shared/types.ts';
 import type {Asset,Plan} from '../shared/types.ts';
 const base=(process.env.WORKER_API_URL||'http://127.0.0.1:3001').replace(/\/$/,'');
 const token=process.env.WORKER_TOKEN||'development-worker-token';
@@ -23,10 +24,10 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
   const selected=job.kind==='probe'?assets.filter(a=>a.id===job.assetId):assets;
   for(const a of selected){const file=await source(job.id,a,signal);files.set(a.id,file);
    if(a.status!=='ready'){
-    try{const info=await probe(file,signal);if(info.durationMs>limits.seconds*1000)throw Error('Source duration exceeds the project limit.');Object.assign(a,info,{status:'ready',error:undefined});if(a.hasAudio){const features=await audioFeatures(file,root,signal);a.analysis={...a.analysis,...features};}await post(endpoint+'asset',a,signal);if(a.kind==='video'){const thumb=path.join(root,a.id+'.jpg');await sample(file,thumb,signal,Math.min(.5,a.durationMs/2000));await api(endpoint+`thumb?asset=${a.id}`,{method:'PUT',body:await readFile(thumb)},signal);}}
+    try{const info=await probe(file,signal);if(info.durationMs>limits.seconds*1000)throw Error('Source duration exceeds the project limit.');const held=a.kind==='image'&&a.durationMs>=500?a.durationMs:info.durationMs;Object.assign(a,info,{durationMs:info.kind==='image'?held:info.durationMs,status:'ready',error:undefined});if(a.hasAudio){const features=await audioFeatures(file,root,signal);a.analysis={...a.analysis,...features};}await post(endpoint+'asset',a,signal);if(isVisual(a)){const thumb=path.join(root,a.id+'.jpg');await sample(file,thumb,signal,a.kind==='image'?0:Math.min(.5,a.durationMs/2000));await api(endpoint+`thumb?asset=${a.id}`,{method:'PUT',body:await readFile(thumb)},signal);}}
     catch(e){await post(endpoint+'asset',{id:a.id,status:'error',error:e instanceof Error?e.message.slice(0,300):'Unsupported media.'}).catch(()=>{});throw e;}
    }
-   if(a.kind==='video'){const thumb=path.join(root,a.id+'.jpg');try{await stat(thumb);}catch{await sample(file,thumb,signal,Math.min(1,a.durationMs/2000));}frames.set(a.id,thumb);}
+   if(isVisual(a)){const thumb=path.join(root,a.id+'.jpg');try{await stat(thumb);}catch{await sample(file,thumb,signal,a.kind==='image'?0:Math.min(1,a.durationMs/2000));}frames.set(a.id,thumb);}
   }
   if(job.kind==='probe'){await post(endpoint+'complete',{},signal);return;}
   if(connection){const fingerprint=createHash('sha256').update(JSON.stringify(Object.fromEntries(Object.entries(connection).filter(([k])=>k!=='token')))).digest('hex');if(job.connectionFingerprint&&fingerprint!==job.connectionFingerprint)throw Error('AI settings changed while this job was queued. Create a new edit with the current connection.');}
