@@ -6,7 +6,9 @@ import path from 'node:path';
 import {randomUUID,createHash} from 'node:crypto';
 import {probe,sample,extractAudio,render,quality,command,audioFeatures,correlate} from './media.ts';
 import {automaticPlan,validatePlan} from './plan.ts';
-import {planWithAI,transcribe} from './provider.ts';
+import {lyricPlan} from './lyric-plan.ts';
+import {renderLyrics} from './lyric-render.ts';
+import {planWithAI,transcribe,transcribeWords,recommendLyricTheme} from './provider.ts';
 import {isVisual} from '../shared/types.ts';
 import type {Asset,Plan} from '../shared/types.ts';
 const base=(process.env.WORKER_API_URL||'http://127.0.0.1:3001').replace(/\/$/,'');
@@ -31,7 +33,18 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
   }
   if(job.kind==='probe'){await post(endpoint+'complete',{},signal);return;}
   if(connection){const fingerprint=createHash('sha256').update(JSON.stringify(Object.fromEntries(Object.entries(connection).filter(([k])=>k!=='token')))).digest('hex');if(job.connectionFingerprint&&fingerprint!==job.connectionFingerprint)throw Error('AI settings changed while this job was queued. Create a new edit with the current connection.');}
-  if(job.settings.captions||job.settings.mode==='ai'&&connection?.transcriptionModel){
+  let lyricEdit:Plan|undefined;
+  if(job.settings.lyrics){
+   const settings=job.settings.lyrics;const song=assets.find(a=>a.id===settings.songId&&a.kind==='audio'&&a.status==='ready');if(!song)throw Error('Choose an analyzed song.');let cues=settings.cues,timing=settings.timing,suggestion=(song.analysis as any)?.lyrics?.themeSuggestion;
+   if(settings.source==='auto'){
+    if(!connection||connection.protocol!=='openai'||!connection.transcriptionModel)throw Error('Configure a word-timestamp transcription connection.');
+    const fingerprint=createHash('sha256').update(JSON.stringify({url:connection.baseUrl,model:connection.transcriptionModel,size:song.size,words:1})).digest('hex');let cached=(song.analysis as any)?.lyrics;
+    if(cached?.fingerprint!==fingerprint){await checkpoint('Transcribing lyrics');const wav=path.join(root,song.id+'-lyrics.wav');await extractAudio(files.get(song.id)!,wav,signal);cues=await transcribeWords(connection,wav,song.durationMs,signal,usage);cached={fingerprint,cues};song.analysis={...song.analysis,lyrics:cached} as any;await post(endpoint+'asset',{id:song.id,analysis:song.analysis},signal);}else cues=cached.cues;timing='word';
+    if(settings.theme==='auto'){const themeFingerprint=createHash('sha256').update(JSON.stringify({base:connection.baseUrl,model:connection.model,cues})).digest('hex');if(cached.themeFingerprint!==themeFingerprint){await checkpoint('Choosing lyric palette');const e=(song.analysis as any)?.envelope||[];const energy=Math.sqrt(e.reduce((n:number,v:number)=>n+v*v,0)/Math.max(1,e.length));cached.themeSuggestion=await recommendLyricTheme(connection,cues,energy,signal,usage);cached.themeFingerprint=themeFingerprint;song.analysis={...song.analysis,lyrics:cached} as any;await post(endpoint+'asset',{id:song.id,analysis:song.analysis},signal);}suggestion=cached.themeSuggestion;}
+   }
+   lyricEdit=lyricPlan(assets,job.settings,cues,timing,suggestion);if(job.analyzeOnly){await post(endpoint+'complete',{},signal);return;}
+  }
+  if(!lyricEdit&&(job.settings.captions||job.settings.mode==='ai'&&connection?.transcriptionModel)){
    if(!connection||connection.protocol!=='openai'||!connection.transcriptionModel)throw Error('Configure a timestamped transcription model for captions.');
    const transcriberHash=createHash('sha256').update(connection.baseUrl+connection.transcriptionModel).digest('hex');
    for(const a of assets.filter(x=>x.hasAudio&&(x.kind==='video'||x.role==='voiceover'))){
@@ -40,8 +53,8 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
    }
   }
   await checkpoint(job.settings.mode==='ai'?'Planning with AI':'Editing');
-  let plan:Plan=job.plan|| (job.settings.mode==='ai'?await planWithAI(connection,assets,job.settings,job.instruction,payload.revision?.plan,frames,signal,usage):automaticPlan(assets,job.settings,job.instruction,payload.revision?.plan));
-  const syncAssets=assets.filter(a=>a.kind==='audio'&&a.role==='sync');
+  let plan:Plan=lyricEdit||job.plan|| (job.settings.mode==='ai'?await planWithAI(connection,assets,job.settings,job.instruction,payload.revision?.plan,frames,signal,usage):automaticPlan(assets,job.settings,job.instruction,payload.revision?.plan));
+  const syncAssets=lyricEdit?[]:assets.filter(a=>a.kind==='audio'&&a.role==='sync');
   for(const a of syncAssets){
    const reference=assets.find(x=>x.kind==='video'&&x.hasAudio);if(!reference)throw Error('Synchronization needs original audio in a video clip. Choose Voiceover or Background music for unrelated sound.');
    let refEnvelope=(reference.analysis as any)?.envelope,recordingEnvelope=(a.analysis as any)?.envelope;if(!refEnvelope)refEnvelope=(await audioFeatures(files.get(reference.id)!,root,signal)).envelope;if(!recordingEnvelope)recordingEnvelope=(await audioFeatures(files.get(a.id)!,root,signal)).envelope;
@@ -52,7 +65,8 @@ async function work(payload:any){const {job,connection,limits}=payload;const con
   }
   plan=validatePlan(plan,assets,job.settings,payload.revision?.plan);await checkpoint('Rendering',{plan},0);
   dir=path.join(root,job.id);await rm(dir,{recursive:true,force:true});await mkdir(dir,{recursive:true});let last=0;let pending=Promise.resolve();
-  const output=await render(plan,assets,files,dir,signal,p=>{if(Date.now()-last<1200&&p<1)return;last=Date.now();pending=pending.then(()=>checkpoint('Rendering',{plan},p)).then(()=>{});pending.catch(()=>controller.abort());});await pending;
+  const reportProgress=(p:number)=>{if(Date.now()-last<1200&&p<1)return;last=Date.now();pending=pending.then(()=>checkpoint('Rendering',{plan},p)).then(()=>{});pending.catch(()=>controller.abort());};
+  const output=plan.lyrics?await renderLyrics(plan,files.get(plan.lyrics.songId)!,dir,signal,reportProgress):await render(plan,assets,files,dir,signal,reportProgress);await pending;
   await checkpoint('Checking',{plan});const report=await quality(output,plan,signal);const size=(await stat(output)).size;Object.assign(report,{size});
   if(size>(limits.outputBytes||limits.fileBytes))throw Error('Rendered output exceeds the configured file-size limit.');
   await checkpoint('Saving',{plan});await api(endpoint+'output',{method:'PUT',headers:{'content-length':String(size)},body:Readable.toWeb(createReadStream(output)) as any,duplex:'half'} as any,signal);await post(endpoint+'complete',{plan,quality:report},signal);

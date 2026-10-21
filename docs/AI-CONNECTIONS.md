@@ -27,3 +27,7 @@ ChatGPT sign-in is website identity. Consumer ChatGPT/Claude/Gemini subscription
 Verification status: both protocol adapters passed **explicit local mock contract tests**. No real provider key or approved custom Claude endpoint was supplied in this session. No live inference, vision or transcription success is claimed.
 
 Implementation references checked during build: https://tus.io/protocols/resumable-upload, https://ffmpeg.org/ffmpeg-filters.html, https://nodejs.org/api/sqlite.html, https://expressjs.com/en/5x/api/, https://vite.dev/guide/. Recheck provider documentation before enabling a model, rather than treating a saved setting as capability proof.
+
+### Lyric timing and palettes
+
+Automatic lyric generation requires an OpenAI-compatible `/audio/transcriptions` endpoint supporting `verbose_json` and `timestamp_granularities[]=word`. OpenAI documents this timestamp parameter for `whisper-1`: https://developers.openai.com/api/docs/guides/speech-to-text . Segment-only responses are rejected; the worker never assigns equal word lengths. Automatic palette analysis uses the same connection's chat model with actual lyrics and opening RMS energy, validated against ten allowed palettes. It does not receive the waveform and has not heard the song. Choose a palette manually to avoid the style-analysis request. Generation uses up to two reserved calls; successful results are cached and uncertain requests are not automatically retried. Cues remain editable; imported or corrected timing exports without API access.

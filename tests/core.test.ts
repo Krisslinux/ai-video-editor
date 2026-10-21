@@ -23,3 +23,12 @@ test('Explicit local mock verifies OpenAI and Anthropic adapter contracts, not l
  server.listen(0,'127.0.0.1');await once(server,'listening');const port=(server.address() as any).port;process.env.LOCAL_AI_ORIGIN=`http://127.0.0.1:${port}`;
  try{for(const protocol of ['openai','anthropic'] as const){const plan=await planWithAI({protocol,baseUrl:`${process.env.LOCAL_AI_ORIGIN}/v1`,model:'fixture-only',vision:false,transcriptionModel:'',token:'',hasKey:false,configured:true,maxCalls:1},[a],defaults,'',undefined,new Map(),new AbortController().signal,async(_kind,fn)=>fn());assert.equal(validatePlan(plan,[a],defaults).engine,'ai');}assert.deepEqual(seen,['/v1/chat/completions','/v1/messages']);}finally{delete process.env.LOCAL_AI_ORIGIN;server.closeAllConnections();server.close();}
 });
+
+test('Lyric timing imports preserve supplied times and reject fabricated or invalid ranges',async()=>{
+ const {importLyrics,shiftCues,lyricDefaults}=await import('../shared/lyrics.ts');const {lyricPlan}=await import('../server/lyric-plan.ts');
+ assert.deepEqual(importLyrics('[00:00.40] First line\n[00:01.40] Next line',3000),{timing:'line',cues:[{startMs:400,endMs:1400,text:'First line'},{startMs:1400,endMs:3000,text:'Next line'}]});
+ assert.throws(()=>importLyrics('lyrics without timestamps',3000),/Use LRC/);assert.throws(()=>shiftCues([{startMs:10,endMs:100,text:'a'}],-20,3000),/ordered/);
+ const song=asset('song','audio');const settings={...defaults,lyrics:{...lyricDefaults,songId:song.id,source:'manual' as const,cues:[{startMs:400,endMs:900,text:'Sing'}]}};
+ const plan=lyricPlan([song],settings,settings.lyrics.cues,'word');assert.equal(validatePlan(plan,[song],settings).audio[0].gain,1);assert.equal(plan.segments.length,0);
+ assert.throws(()=>validatePlan({...plan,audio:[{...plan.audio[0],gain:.18}]},[song],settings),/original volume/);assert.throws(()=>validatePlan({...plan,lyrics:{...plan.lyrics!,songId:'unowned'}},[song],settings),/song/);assert.throws(()=>validatePlan({...automaticPlan([asset('visual')],defaults),segments:[]},[asset('visual')],defaults),/visual/);
+});

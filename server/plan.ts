@@ -1,14 +1,12 @@
+import {dimensions} from '../shared/composition.ts';
+export {dimensions} from '../shared/composition.ts';
 import {z} from 'zod';
 import type {Asset,Settings,Plan,Transcript} from '../shared/types.ts';
+import {lyricCompositionSchema,validateLyrics} from './lyric-plan.ts';
 import {isVisual} from '../shared/types.ts';
 const ms=z.number().int().nonnegative();
-export const planSchema=z.object({version:z.literal(1),fps:z.literal(30),width:z.number().int(),height:z.number().int(),fit:z.enum(['fit','fill']),segments:z.array(z.object({assetId:z.string(),inMs:ms,outMs:ms,gain:z.number().min(0).max(2)}).strict()).min(1).max(64),audio:z.array(z.object({assetId:z.string(),inMs:ms,outMs:ms,atMs:ms,gain:z.number().min(0).max(2),role:z.enum(['music','voiceover','sync'])}).strict()).max(24),captions:z.array(z.object({startMs:ms,endMs:ms,text:z.string().max(160)})).max(2000),summary:z.array(z.string().max(200)).max(10),warnings:z.array(z.string().max(200)).max(20),engine:z.enum(['automatic','ai'])}).strict();
+export const planSchema=z.object({version:z.literal(1),fps:z.literal(30),width:z.number().int(),height:z.number().int(),fit:z.enum(['fit','fill']),segments:z.array(z.object({assetId:z.string(),inMs:ms,outMs:ms,gain:z.number().min(0).max(2)}).strict()).max(64),audio:z.array(z.object({assetId:z.string(),inMs:ms,outMs:ms,atMs:ms,gain:z.number().min(0).max(2),role:z.enum(['music','voiceover','sync'])}).strict()).max(24),captions:z.array(z.object({startMs:ms,endMs:ms,text:z.string().max(160)})).max(2000),summary:z.array(z.string().max(200)).max(10),warnings:z.array(z.string().max(200)).max(20),engine:z.enum(['automatic','ai']),lyrics:lyricCompositionSchema.optional()}).strict();
 export const frameMs=(ms:number)=>Math.round(ms*30/1000)*1000/30;
-export function dimensions(settings:Settings,assets:Asset[]){
- if(settings.ratio==='custom')return {width:Math.round(settings.width/2)*2,height:Math.round(settings.height/2)*2};
- const main=assets.find(isVisual);const ratio=settings.ratio==='auto'?(main&&main.width&&main.height?main.width/main.height:16/9):(()=>{const [w,h]=settings.ratio.split(':').map(Number);return w/h;})();
- return ratio>=1?{width:1280,height:Math.round(1280/ratio/2)*2}:{width:Math.round(1280*ratio/2)*2,height:1280};
-}
 export function automaticPlan(assets:Asset[],settings:Settings,instruction='',previous?:Plan):Plan{
  let s={...settings};if(/\bportrait\b/i.test(instruction))s.ratio='9:16';if(/\blandscape\b/i.test(instruction))s.ratio='16:9';
  let target=s.targetSeconds*1000;if(/\bshorter\b/i.test(instruction)&&previous)target=Math.round(previous.segments.reduce((n,c)=>n+c.outMs-c.inMs,0)*0.7);
@@ -32,6 +30,7 @@ export function automaticPlan(assets:Asset[],settings:Settings,instruction='',pr
 }
 export function validatePlan(raw:unknown,assets:Asset[],settings:Settings,previous?:Plan):Plan{
  const plan=planSchema.parse(raw);if(plan.width<144||plan.height<144||plan.width>1920||plan.height>1920||plan.width%2||plan.height%2)throw Error('Invalid output dimensions.');
+ if(plan.lyrics)return validateLyrics(plan,assets,settings);if(!plan.segments.length)throw Error('Add a visual source.');
  let total=0;const mapping:{id:string;at:number;inMs:number;outMs:number;gain:number}[]=[];
  for(const c of plan.segments){const a=assets.find(a=>a.id===c.assetId&&isVisual(a)&&a.status==='ready');if(!a||c.outMs<=c.inMs||c.outMs>a.durationMs+34||c.outMs-c.inMs<33)throw Error('The edit plan contains an invalid visual range.');if(plan.engine==='ai'&&a.analysis?.transcript?.some(t=>c.inMs>t.startMs+100&&c.inMs<t.endMs-100||c.outMs>t.startMs+100&&c.outMs<t.endMs-100))throw Error('The AI plan cuts through timestamped speech. No edit was applied; ask for a less aggressive trim.');mapping.push({id:c.assetId,at:total,...c});total+=c.outMs-c.inMs;}
  if(total>1800000)throw Error('The edit exceeds the maximum output duration.');

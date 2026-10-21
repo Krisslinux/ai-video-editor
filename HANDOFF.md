@@ -21,3 +21,15 @@ Before public release: install retention/orphan cleanup, verify deployed worker 
 ## Image-to-video update
 
 Use **Add images** (JPEG, PNG, WebP), or drop images and clips together. An image-only project can create a video with no AI credentials. Set each image's **Show for** duration (0.5–30 seconds, default 3), optionally add music/narration, then create, preview and download. The same native worker handles stills and video clips. Existing sources, ownership, image protection, versions, Fit/Fill and ratios apply. The temporary worker must run the updated code. Animated images and HEIC/AVIF/SVG/GIF are outside the supported image formats.
+
+## Lyric videos
+
+Choose **Lyric video**, upload a song (8 minutes maximum), then **Generate timed lyrics**. An OpenAI-compatible connection needs a transcription model with real word timestamps (`whisper-1` on OpenAI) and a chat model for Auto palette analysis. Initial generation uses up to two provider calls. Generated cues and palette results are cached; ordinary export/style revisions reuse them. No live provider or user song has been verified yet.
+
+Review and edit the cue text/start/end times, save timing, and export an MP4. Saved corrections and LRC/JSON/seconds-table imports work without a provider. Imported LRC is line timed; word timing is never fabricated. A global ±10-second offset is explicit and rejected if it places a cue outside the song. Songs remain full length at original speed and volume. Only one lyric line/word stream is supported; overlapping duet cues need manual arrangement.
+
+Seven restrained botanical motion variants and ten palettes draw inspiration from the user's partial Type Garden reference. The attached snippet cuts off before its drawing/export implementation; this is a new deterministic canvas renderer, not an exact reproduction. Browser preview and native rendering share audio-time drawing logic and bundled OFL Playfair Display/DM Mono fonts. Native canvas is worker-only. Auto palette combines transcript meaning and measured opening audio energy; it is a suggestion, with manual override, and does not claim the model heard the music.
+
+The workspace copy is shorter, with compact controls, mobile navigation, responsive grids and cue editing, touch-sized fields, and reduced-motion preview support. Managed browser QA is still blocked by the unavailable `sites-previewd` mailbox; supplied desktop/mobile Playwright scenarios have not run here.
+
+Validation: 8 core tests; full existing native integration; `npm run test:lyrics`; typecheck; Sites build. Lyric fixture: 3 s / 90 frames; first visible text frame 12; subsequent highlights frames 42 and 72; audio onset errors 0.021 ms. These are synthetic cues/local provider mocks, not evidence of real singing recognition or perfect creative matching.

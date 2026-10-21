@@ -1,0 +1,17 @@
+import {z} from 'zod';
+import {lyricThemes,lyricMotions,lyricLimitMs,shiftCues,chooseTheme,checkCues} from '../shared/lyrics.ts';
+import type {Asset,Settings,Plan,Transcript} from '../shared/types.ts';
+import {dimensions} from '../shared/composition.ts';
+export const cueSchema=z.object({startMs:z.number().int().nonnegative(),endMs:z.number().int().positive(),text:z.string().trim().min(1).max(160)}).strict();
+export const lyricSettingsSchema=z.object({songId:z.string().max(80),source:z.enum(['auto','manual']),theme:z.enum(['auto',...lyricThemes.map(x=>x.id)]),motion:z.enum(lyricMotions),offsetMs:z.number().int().min(-10000).max(10000),cues:z.array(cueSchema).max(2000),timing:z.enum(['word','line'])}).strict();
+export const lyricCompositionSchema=z.object({songId:z.string().max(80),durationMs:z.number().int().positive().max(lyricLimitMs),cues:z.array(cueSchema).min(1).max(2000),theme:z.enum(lyricThemes.map(x=>x.id)),motion:z.enum(lyricMotions),timing:z.enum(['word','line']),energy:z.number().min(0).max(1),themeReason:z.string().max(250)}).strict();
+export function lyricPlan(assets:Asset[],settings:Settings,cues:Transcript[],timing:'word'|'line',suggestion?:{theme:import('../shared/lyrics.ts').LyricTheme;reason:string}):Plan{
+ const s=lyricSettingsSchema.parse(settings.lyrics),song=assets.find(a=>a.id===s.songId&&a.kind==='audio'&&a.status==='ready');if(!song)throw Error('Choose an analyzed song.');if(song.durationMs>lyricLimitMs)throw Error('Lyric videos support songs up to 8 minutes.');
+ const envelope=(song.analysis as any)?.envelope||[];const energy=Math.min(1,Math.sqrt(envelope.reduce((sum:number,x:number)=>sum+x*x,0)/Math.max(1,envelope.length)));const chosen=suggestion||chooseTheme(energy);const theme=s.theme==='auto'?chosen.theme:s.theme;
+ const shifted=shiftCues(cues,s.offsetMs,song.durationMs);
+ return {version:1,fps:30,...dimensions(settings,[]),fit:'fit',segments:[],audio:[{assetId:song.id,inMs:0,outMs:song.durationMs,atMs:0,gain:1,role:'music'}],captions:[],engine:s.source==='auto'?'ai':'automatic',lyrics:{songId:song.id,durationMs:song.durationMs,cues:shifted,theme,motion:s.motion,timing,energy,themeReason:s.theme==='auto'?chosen.reason:'Palette selected by you.'},summary:[`${shifted.length} ${timing==='word'?'word':'line'} cues · ${lyricThemes.find(t=>t.id===theme)!.name} · ${s.motion}.`,'Full song at original speed and volume.'],warnings:['Review lyrics and timing against your song. Singing recognition can miss words, harmonies, and instrumental sections.',...(timing==='line'?['Line-timed lyrics animate each line together; word-level alignment was not supplied.']:[])]};
+}
+export function validateLyrics(plan:Plan,assets:Asset[],settings:Settings){
+ const l=lyricCompositionSchema.parse(plan.lyrics),song=assets.find(a=>a.id===l.songId&&a.kind==='audio'&&a.status==='ready');if(!settings.lyrics||!song||l.songId!==settings.lyrics.songId||l.durationMs!==song.durationMs)throw Error('Invalid lyric song or duration.');checkCues(l.cues,l.durationMs);
+ if(plan.segments.length||plan.captions.length||plan.audio.length!==1)throw Error('Lyric videos use one full song and no visual cuts.');const a=plan.audio[0];if(a.assetId!==song.id||a.inMs!==0||a.outMs!==song.durationMs||a.atMs!==0||a.gain!==1||a.role!=='music')throw Error('The lyric song must remain full length at original volume.');if(assets.some(a=>a.protected&&a.id!==song.id))throw Error('Unlock other protected sources before creating a song-only lyric video.');return {...plan,lyrics:l};
+}

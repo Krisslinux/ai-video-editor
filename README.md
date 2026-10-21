@@ -51,3 +51,7 @@ The synthetic integration test uploads two 3-second numbered clips plus music, r
 - **Your domain:** a Linux VPS can run API, worker and Caddy with the supplied Compose configuration. Domain/DNS changes and public release are separate steps after testing. No domain changes have been made.
 
 Read [deployment](docs/DEPLOYMENT.md), [architecture](docs/ARCHITECTURE.md), [AI connections](docs/AI-CONNECTIONS.md), [security](SECURITY.md), and [handoff](HANDOFF.md). Preserve the existing MIT license; FFmpeg distributions and model services have separate terms.
+
+### Lyric videos
+
+Song-only projects support word-timestamp transcription, a reviewable cue editor, LRC/JSON/timestamp-table imports, ten color palettes, seven botanical motion variants, and deterministic native H.264/AAC export. Songs are limited to eight minutes. Native workers now require `@napi-rs/canvas` and the bundled `public/fonts` directory. Run `npm run test:lyrics` for the synthetic timing/adapter integration test. Live singing transcription and real-device UI QA are not yet verified; review and correct lyrics before exporting. See `HANDOFF.md` for the workflow and limits.
