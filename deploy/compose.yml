@@ -21,9 +21,10 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile
     command: ["npm", "run", "worker"]
-    env_file: ../.env
     environment:
       NODE_ENV: production
+      WORKER_TOKEN: ${WORKER_TOKEN:?Set WORKER_TOKEN in your .env file}
+      LOCAL_AI_ORIGIN: ${LOCAL_AI_ORIGIN:-}
       WORKER_API_URL: http://api:3001
       WORKER_DATA_DIR: /app/data
       FFMPEG_THREADS: "2"

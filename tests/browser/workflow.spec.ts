@@ -13,7 +13,7 @@ test('real upload, render, portrait revision, restore and download',async({page}
  await expect.poll(()=>page.locator('video').evaluate((v:HTMLVideoElement)=>v.readyState)).toBeGreaterThan(0);
  await page.getByRole('button',{name:'Change to portrait',exact:true}).click();
  await expect(page.getByText('VERSION 02',{exact:true})).toBeVisible({timeout:90000});
- const dimensions=await page.locator('video').evaluate((v:HTMLVideoElement)=>({width:v.videoWidth,height:v.videoHeight}));expect(dimensions).toEqual({width:720,height:1280});
+ await expect.poll(()=>page.locator('video').evaluate((v:HTMLVideoElement)=>({width:v.videoWidth,height:v.videoHeight}))).toEqual({width:720,height:1280});
  await page.getByRole('button',{name:'Restore version 1',exact:true}).click();await expect(page.getByText('VERSION 01',{exact:true})).toBeVisible();
  const downloaded=page.waitForEvent('download');await page.getByRole('link',{name:'Download video'}).click();await (await downloaded).saveAs(testInfo.outputPath('render.mp4'));
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
