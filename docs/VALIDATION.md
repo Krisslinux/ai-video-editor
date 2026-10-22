@@ -92,3 +92,12 @@ New tests cover all 16 catalog entries, 12 bounded fetch adapters, best recordin
 Live public searches returned LRCLIB line timing and BetterLyrics word timing. Several other providers were blocked/unavailable; an HTTP-200 HTML service error is rejected rather than displayed as lyrics. No live PaxSenix key was supplied. The four external/import providers are labeled explicitly. Perfect alignment with a user's recording is not claimed.
 
 The Impeccable detector returned no findings for changed UI targets. The managed browser-preview mailbox is still absent, so browser/real-phone verification remains unavailable. Responsive CSS, keyboard labels, cancel/loading/error/empty states and production bundles were reviewed; no browser screenshot or interaction pass is claimed. Manual acceptance on a browser host: upload audio → Find lyrics online → compare Auto and a specific source → Use lyrics → preview/adjust → reload to verify source/cues → export; also import a caption file and plain text, assign times and save.
+
+
+## Cloudflare processor preparation — 2026-10-22
+
+The connected Cloudflare account and Workers settings were reachable. Containers application listing returned an explicit Workers Paid entitlement error. Billing subscription listing was denied because the OAuth connection lacks Billing API-token permission. No Cloudflare resources, subscriptions, DNS records or secrets were changed, and no processor deployment is claimed.
+
+Prepared a headless linux/amd64 FFmpeg/canvas/faster-whisper Dockerfile with model weights baked into the image, plus a stopped singleton application template matching the retrieved Containers API schema. The template contains no secrets and no deployable image reference. Docker is unavailable in this workspace, so image build, model load inside the image, image publication, Cloudflare lifecycle and a real Cloudflare MP4 export remain unverified.
+
+Passed npm run check, all 13 unit/adapter/API tests, regenerated synthetic fixtures, npm run test:integration and npm run build:sites. Native regression report: `test-data/integration-1792681934203/report.json`; original six-second/180-frame timing markers, image-only output and mixed portrait output passed. The deployment template also parses as JSON and starts at zero instances. The existing website code and publication were not changed for this preparation. See CLOUDFLARE-PROCESSOR.md for the account requirement, source references, verification sequence and running-resource cost estimate.

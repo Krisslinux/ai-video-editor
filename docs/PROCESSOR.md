@@ -24,3 +24,5 @@ Install Node 24.19.x and FFmpeg/ffprobe, create a dedicated `frameflow` user, pu
 The ChatGPT Site is deployed. This workspace's processor remains temporary, even when supervised. The user supplied an Ubuntu server, but outbound SSH failed with Network is unreachable before authentication; these service definitions have not been installed there. Docker and systemd deployment require verification on the chosen host. The website reports the actual processor lease, never a forced “online” badge.
 
 Local Whisper and HyperFrames/Puppeteer setup: see `LYRICS-TOOLS.md`.
+
+Cloudflare hosting is prepared separately in `CLOUDFLARE-PROCESSOR.md` and `deploy/cloudflare/`. The connected account's Containers API currently rejects access because Workers Paid is not enabled. No Cloudflare processor has been deployed. The prepared application starts stopped; billing and an actual image/export verification must be resolved before leaving an instance running.
