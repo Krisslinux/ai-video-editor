@@ -1,0 +1,16 @@
+{
+  "name": "frameflow-processor",
+  "scheduling_policy": "default",
+  "instances": 0,
+  "max_instances": 1,
+  "configuration": {
+    "image": "REPLACE_WITH_VERIFIED_REGISTRY_IMAGE_DIGEST",
+    "instance_type": "standard-2",
+    "environment_variables": [
+      {
+        "name": "WORKER_API_URL",
+        "value": "https://frameflow-video-studio.kriss626975.chatgpt.site"
+      }
+    ]
+  }
+}

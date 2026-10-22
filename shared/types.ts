@@ -1,0 +1,17 @@
+import type {LyricSettings,LyricComposition} from './lyrics.ts';
+export type Role = 'auto'|'voiceover'|'music'|'sync';
+export type Ratio = 'auto'|'16:9'|'9:16'|'1:1'|'4:5'|'4:3'|'21:9'|'custom';
+export type Settings = {ratio:Ratio; width:number; height:number; fit:'fit'|'fill'; targetSeconds:number; captions:boolean; mode:'automatic'|'ai';lyrics?:LyricSettings};
+export const defaults:Settings={ratio:'auto',width:1280,height:720,fit:'fit',targetSeconds:0,captions:false,mode:'automatic'};
+export type Transcript={startMs:number;endMs:number;text:string};
+export type Asset={id:string;projectId:string;name:string;kind:'video'|'image'|'audio';mimeType?:string;role:Role;size:number;offset:number;status:'uploading'|'uploaded'|'ready'|'error';error?:string;durationMs:number;width:number;height:number;hasAudio:boolean;protected:boolean;analysis?:{transcript?:Transcript[];silences?:{start:number;end:number}[];syncOffsetMs?:number;syncConfidence?:number};createdAt:number};
+export const imageDuration={defaultMs:3000,minMs:500,maxMs:30000};
+export const isVisual=(asset:Pick<Asset,'kind'>)=>asset.kind==='video'||asset.kind==='image';
+export type Segment={assetId:string;inMs:number;outMs:number;gain:number};
+export type AudioEdit={assetId:string;inMs:number;outMs:number;atMs:number;gain:number;role:'voiceover'|'music'|'sync'};
+export type Plan={version:1;fps:30;width:number;height:number;fit:'fit'|'fill';segments:Segment[];audio:AudioEdit[];captions:Transcript[];summary:string[];warnings:string[];engine:'automatic'|'ai';lyrics?:LyricComposition};
+export type Quality={durationMs:number;width:number;height:number;frames:number;checks:{name:string;status:'pass'|'warning'|'unavailable';detail:string}[]};
+export type Revision={id:string;number:number;createdAt:number;instruction:string;plan:Plan;quality:Quality};
+export type Job={id:string;projectId:string;status:'queued'|'running'|'ready'|'error'|'canceled';stage:string;progress:number|null;error?:string;createdAt:number};
+export type Project={id:string;name:string;settings:Settings;instruction:string;createdAt:number;updatedAt:number;currentRevision:string|null;assets:Asset[];revisions:Revision[];job:Job|null;providerCalls:number};
+export type Connection={protocol:'openai'|'anthropic';baseUrl:string;model:string;vision:boolean;transcriptionModel:string;transcriptionEngine?:'api'|'faster-whisper';hasKey:boolean;configured:boolean;maxCalls:number};
